@@ -32,6 +32,7 @@ jobs:
 
   build-binaries:
     name: Build Binaries and Add Them to the Release
+    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
