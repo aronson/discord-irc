@@ -7,9 +7,7 @@ on:
       - lib/**
       - deno.*
       - Dockerfile
-  release:
-    types:
-      - published
+    tags: v*
 
 jobs:
   publish-docker:
@@ -92,5 +90,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ runner.os }}-${{ runner.arch }}
+          name: ${{ runner.os }}-${{ runner.os == 'macOS' && 'X64-ARM64' || runner.arch }}
           path: ./discord-irc*
