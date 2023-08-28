@@ -78,7 +78,7 @@ jobs:
           deno-version: v1.x
 
       - name: Compile binary
-        if: runner.os != 'pi'
+        if: matrix.os != 'pi'
         run: deno task prepare
 
       - name: Compile ARM64 binary for macOS
