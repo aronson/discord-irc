@@ -86,7 +86,7 @@ jobs:
       - name: Compile ARM64 binary for Linux
         if: runner.os == 'Linux'
         run: |
-          CONTAINER_ID=$(docker create ghcr.io/${{ github.repository }} --platform arm64)
+          CONTAINER_ID=$(docker create ghcr.io/${{ github.repository }}:${{ github.ref_name }} --platform arm64)
           docker cp $CONTAINER_ID:/app/discord-irc discord-irc-arm64
           docker rm -v $CONTAINER_ID
 
