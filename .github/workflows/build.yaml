@@ -4,9 +4,9 @@ on:
   push:
     paths:
       - .github/workflows/build.yaml
-      - docker/**
       - lib/**
       - deno.*
+      - Dockerfile
   release:
     types:
       - published
