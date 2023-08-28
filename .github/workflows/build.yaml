@@ -67,7 +67,6 @@ jobs:
           - pi
           - windows-latest
           - macos-latest
-    needs: publish-docker
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
