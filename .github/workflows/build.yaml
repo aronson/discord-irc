@@ -7,7 +7,7 @@ on:
       - lib/**
       - deno.*
       - Dockerfile
-    tags: v*
+    tags: '*.*.*'
 
 jobs:
   publish-docker:
