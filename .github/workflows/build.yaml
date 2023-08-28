@@ -81,9 +81,9 @@ jobs:
 
       - name: Compile ARM64 binary for macOS
         if: runner.os == 'macOS'
-        run: deno task prepare --target aarch64-apple-darwin --output discord-irc-arm64
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read lib/index.ts --output discord-irc-arm64 --target aarch64-apple-darwin
 
-      - name: Compile ARM64 binary for Linux
+      - name: Fetch ARM64 binary for Linux
         if: runner.os == 'Linux'
         run: |
           CONTAINER_ID=$(docker create ghcr.io/${{ github.repository }}:${{ github.ref_name }} --platform arm64)
