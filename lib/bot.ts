@@ -502,9 +502,11 @@ export default class Bot {
     ircChannel: string,
     config: IgnoreConfig,
   ): boolean {
-    for (const pattern of config.ignorePatterns[ircChannel]) {
-      if (text.indexOf(pattern) !== -1) {
-        return true;
+    for (const dict of config.ignorePatterns) {
+      for (const pattern of dict[ircChannel]) {
+        if (text.indexOf(pattern) !== -1) {
+          return true;
+        }
       }
     }
     return false;

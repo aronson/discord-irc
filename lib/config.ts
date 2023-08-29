@@ -26,7 +26,7 @@ export type GameLogConfig = {
 };
 
 export type IgnoreConfig = {
-  ignorePatterns: Dictionary<string[]>;
+  ignorePatterns: Dictionary<string[]>[];
 };
 
 export type Config = {
