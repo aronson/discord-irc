@@ -574,9 +574,9 @@ export default class Bot {
     const processMentionables = async (input: string) => {
       return await replaceAsync(
         input,
-        /^([^@\s:,]+)[:,]|@([^\s]+(?:\s[^\s]+)*)/g,
-        async (match, startRef, atRef) => {
-          const reference = startRef || atRef;
+        /([^@\s:,]+):|@([^\s]+)/g,
+        async (match, colonRef, atRef) => {
+          const reference = colonRef || atRef;
           const members = await guild?.members.search(reference);
 
           // @username => mention, case insensitively
