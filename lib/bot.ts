@@ -216,25 +216,15 @@ export default class Bot {
     this.ircClient.on('invite', createIrcInviteListener(this));
   }
 
-  async getDiscordNicknameOnServer(user: User, guild: Guild) {
-    if (guild) {
-      const member = await guild.members.fetch(user.id);
-      const value = member.nick || user.displayName || user.username;
-      return value;
-    }
-    return user.username;
-  }
-
   async replaceUserMentions(
     content: string,
     mention: User,
     message: Message,
   ): Promise<string> {
     if (!message.guild) return '';
-    const displayName = await this.getDiscordNicknameOnServer(
-      mention,
-      message.guild,
-    );
+    const member = await message.guild.members.fetch(mention.id);
+    const displayName = member.nick || mention.displayName || mention.username;
+
     const userMentionRegex = RegExp(`<@(&|!)?${mention.id}>`, 'g');
     return content.replace(userMentionRegex, `@${displayName}`);
   }
@@ -313,6 +303,7 @@ export default class Bot {
       author?: any;
       nickname?: any;
       displayUsername?: any;
+      discordUsername?: any;
       text?: any;
       discordChannel?: string;
       ircChannel?: any;
@@ -351,12 +342,12 @@ export default class Bot {
     if (ircChannel) {
       const fromGuild = message.guild;
       if (!fromGuild) return;
-      const nickname = await this.getDiscordNicknameOnServer(
-        author,
-        fromGuild,
-      );
+      const member = await fromGuild.members.fetch(author.id);
+
       let text = await this.parseText(message);
-      let displayUsername = nickname;
+      let displayUsername = member.nick || author.displayName ||
+        author.username;
+      let discordUsername = member.user.username;
 
       if (this.options.parallelPingFix) {
         // Prevent users of both IRC and Discord from
@@ -370,18 +361,27 @@ export default class Bot {
       }
 
       if (this.options.ircNickColor) {
-        const colorIndex = (nickname.charCodeAt(0) + nickname.length) %
-            this.ircNickColors.length ?? 0;
+        const displayColorIdx =
+          (displayUsername.charCodeAt(0) + displayUsername.length) %
+              this.ircNickColors.length ?? 0;
+        const discordColorIdx =
+          (discordUsername.charCodeAt(0) + discordUsername.length) %
+              this.ircNickColors.length ?? 0;
         displayUsername = wrap(
-          this.ircNickColors[colorIndex],
+          this.ircNickColors[displayColorIdx],
           displayUsername,
+        );
+        discordUsername = wrap(
+          this.ircNickColors[discordColorIdx],
+          discordUsername,
         );
       }
 
       const patternMap = {
-        author: nickname,
-        nickname,
+        author: displayUsername,
+        nickname: displayUsername,
         displayUsername,
+        discordUsername,
         text,
         discordChannel: channelName,
         ircChannel,
