@@ -7,7 +7,7 @@
     }
   },
   "fmt": {
-    "lineWidth": 80,
+    "lineWidth": 120,
     "semiColons": true,
     "singleQuote": true,
     "include": ["lib/", "discord-irc.ts", "README.md", "TODO.md"]
