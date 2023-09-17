@@ -1,19 +1,8 @@
 import { ClientOptions, IrcClient } from './deps.ts';
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
-import {
-  AllowedMentionType,
-  Client,
-  GatewayIntents,
-  Guild,
-  Message,
-  User,
-  Webhook,
-} from './deps.ts';
+import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User, Webhook } from './deps.ts';
 import { validateChannelMapping } from './validators.ts';
-import {
-  formatFromDiscordToIRC,
-  formatFromIRCToDiscord,
-} from './formatting.ts';
+import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
 import { Dictionary, forEachAsync, invert, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
@@ -75,8 +64,7 @@ export default class Bot {
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
   debug: boolean = (Deno.env.get('DEBUG') ?? Deno.env.get('VERBOSE') ?? 'false')
     .toLowerCase() === 'true';
-  verbose: boolean =
-    (Deno.env.get('VERBOSE') ?? 'false').toLowerCase() === 'true';
+  verbose: boolean = (Deno.env.get('VERBOSE') ?? 'false').toLowerCase() === 'true';
   constructor(options: Config) {
     /* REQUIRED_FIELDS.forEach((field) => {
       if (!options[field]) {
@@ -275,9 +263,7 @@ export default class Bot {
   }
 
   isCommandMessage(message: string) {
-    return this.options.commandCharacters?.some((prefix: string) =>
-      message.startsWith(prefix)
-    ) ?? false;
+    return this.options.commandCharacters?.some((prefix: string) => message.startsWith(prefix)) ?? false;
   }
 
   ignoredIrcUser(user: string) {
@@ -311,8 +297,7 @@ export default class Bot {
   ) {
     return message.replace(
       patternMatch,
-      (match: any, varName: string | number) =>
-        patternMapping[varName] || match,
+      (match: any, varName: string | number) => patternMapping[varName] || match,
     );
   }
 
@@ -361,12 +346,10 @@ export default class Bot {
       }
 
       if (this.options.ircNickColor) {
-        const displayColorIdx =
-          (displayUsername.charCodeAt(0) + displayUsername.length) %
-              this.ircNickColors.length ?? 0;
-        const discordColorIdx =
-          (discordUsername.charCodeAt(0) + discordUsername.length) %
-              this.ircNickColors.length ?? 0;
+        const displayColorIdx = (displayUsername.charCodeAt(0) + displayUsername.length) %
+            this.ircNickColors.length ?? 0;
+        const discordColorIdx = (discordUsername.charCodeAt(0) + discordUsername.length) %
+            this.ircNickColors.length ?? 0;
         displayUsername = wrap(
           this.ircNickColors[displayColorIdx],
           displayUsername,
@@ -596,9 +579,7 @@ export default class Bot {
     const processEmoji = async (input: string) => {
       return await replaceAsync(input, /:(\w+):/g, async (match, ident) => {
         // :emoji: => mention, case sensitively
-        const emoji = (await guild?.emojis.array())?.find((x) =>
-          x.name === ident && x.requireColons
-        );
+        const emoji = (await guild?.emojis.array())?.find((x) => x.name === ident && x.requireColons);
         if (emoji) return `${emoji.name}`;
 
         return match;
