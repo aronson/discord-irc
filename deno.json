@@ -14,9 +14,7 @@
   },
   "tasks": {
     "start": "deno run --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts",
-    "prepare": "deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts",
-    "prepareAndStart": "deno task prepare && ./discord-irc",
-    "startPrepared": "./discord-irc"
+    "prepare": "deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts"
   },
   "lock": false
 }
