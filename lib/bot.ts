@@ -490,6 +490,7 @@ export default class Bot {
     ircChannel: string,
     config: IgnoreConfig,
   ): boolean {
+    if (!config.ignorePatterns[ircChannel]) return false;
     for (const pattern of config.ignorePatterns[ircChannel]) {
       if (text.indexOf(pattern) !== -1) {
         return true;
