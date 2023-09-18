@@ -209,6 +209,11 @@ export default class Bot {
     this.ircClient.on('invite', createIrcInviteListener(this));
   }
 
+  async getDiscordUserByString(userString: string, guild: Guild | undefined) {
+    const members = await guild?.members.search(userString) ?? [];
+    return members.find((m) => m.user.username.toLocaleLowerCase() === userString.toLocaleLowerCase());
+  }
+
   async replaceUserMentions(
     content: string,
     mention: User,
@@ -490,6 +495,7 @@ export default class Bot {
     ircChannel: string,
     config: IgnoreConfig,
   ): boolean {
+    if (!config.ignorePatterns) return false;
     if (!config.ignorePatterns[ircChannel]) return false;
     for (const pattern of config.ignorePatterns[ircChannel]) {
       if (text.indexOf(pattern) !== -1) {
@@ -565,10 +571,10 @@ export default class Bot {
         /([^@\s:,]+):|@([^\s]+)/g,
         async (match, colonRef, atRef) => {
           const reference = colonRef || atRef;
-          const members = await guild?.members.search(reference);
+          const member = await this.getDiscordUserByString(reference, guild);
 
           // @username => mention, case insensitively
-          if (members && members.length > 0) return `<@${members[0].id}>`;
+          if (member) return `<@${member.id}>`;
 
           if (!this.options.allowRolePings) return match;
           // @role => mention, case insensitively
