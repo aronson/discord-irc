@@ -3,6 +3,7 @@
 
 > Connects [Discord](https://discord.com/) and [IRC](https://www.ietf.org/rfc/rfc1459.txt) channels by sending messages
 > back and forth.
+> This project was originally written [here](https://github.com/reactiflux/discord-irc).
 
 ## Example
 
