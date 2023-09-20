@@ -14,7 +14,7 @@
 Before you can run discord-irc you need to create a configuration file by following the instructions
 [here](https://github.com/aronson/discord-irc#configuration).
 
-### Native builds (easiest)
+### Running native builds (easiest)
 
 Start the bot by downloading the [latest release](https://github.com/aronson/discord-irc/releases) for your platform.
 
