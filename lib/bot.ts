@@ -220,11 +220,17 @@ export default class Bot {
     message: Message,
   ): Promise<string> {
     if (!message.guild) return '';
-    const member = await message.guild.members.fetch(mention.id);
-    const displayName = member.nick || mention.displayName || mention.username;
+    try {
+      const member = await message.guild.members.fetch(mention.id);
+      const displayName = member.nick || mention.displayName || mention.username;
 
-    const userMentionRegex = RegExp(`<@(&|!)?${mention.id}>`, 'g');
-    return content.replace(userMentionRegex, `@${displayName}`);
+      const userMentionRegex = RegExp(`<@(&|!)?${mention.id}>`, 'g');
+      return content.replace(userMentionRegex, `@${displayName}`);
+    } catch (e) {
+      // Happens when a webhook is mentioned similar to a user, prevent 404 from crashing bot
+      this.logger.error(e);
+      return '';
+    }
   }
 
   replaceNewlines(text: string): string {
