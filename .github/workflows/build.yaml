@@ -76,15 +76,15 @@ jobs:
         with:
           deno-version: v1.x
 
-      - name: Compile ubuntu binary
+      - name: Compile AMD64 binary for Linux
         if: matrix.os == 'ubuntu-latest'
         run: deno task prepare --output discord-irc-linux-amd64
 
-      - name: Compile binary
+      - name: Compile AMD64 binary for Windows
         if: matrix.os == 'windows-latest'
         run: deno task prepare --output discord-irc-windows-amd64.exe
 
-      - name: Compile binary
+      - name: Compile AMD64 binary for macOS
         if: matrix.os == 'macos-latest'
         run: deno task prepare --output discord-irc-macos-amd64
 
