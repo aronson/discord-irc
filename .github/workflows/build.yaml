@@ -90,7 +90,7 @@ jobs:
 
       - name: Compile ARM64 binary for macOS
         if: runner.os == 'macOS'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-arm64 --target aarch64-apple-darwin discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-macos-arm64 --target aarch64-apple-darwin discord-irc.ts
 
       - name: Compile ARM64 binary for Linux
         if: runner.os == 'Linux' && matrix.os == 'pi'
