@@ -78,23 +78,23 @@ jobs:
 
       - name: Compile AMD64 binary for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: deno task prepare --output discord-irc-linux-amd64
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts --output discord-irc-linux-amd64
 
       - name: Compile AMD64 binary for Windows
         if: matrix.os == 'windows-latest'
-        run: deno task prepare --output discord-irc-windows-amd64.exe
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts --output discord-irc-windows-amd64.exe
 
       - name: Compile AMD64 binary for macOS
         if: matrix.os == 'macos-latest'
-        run: deno task prepare --output discord-irc-macos-amd64
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts --output discord-irc-macos-amd64
 
       - name: Compile ARM64 binary for macOS
         if: runner.os == 'macOS'
-        run: deno task prepare --output discord-irc-arm64 --target aarch64-apple-darwin
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts --output discord-irc-arm64 --target aarch64-apple-darwin
 
       - name: Compile ARM64 binary for Linux
         if: runner.os == 'Linux' && matrix.os == 'pi'
-        run: deno task prepare --output discord-irc-linux-arm64
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read discord-irc.ts --output discord-irc-linux-arm64
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
