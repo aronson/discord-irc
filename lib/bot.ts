@@ -26,6 +26,7 @@ import {
   createDiscordReadyListener,
 } from './discordListeners.ts';
 import { AllWebhookMessageOptions } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/src/structures/webhook.ts';
+import { DiscordAPIError } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
@@ -228,7 +229,11 @@ export default class Bot {
       return content.replace(userMentionRegex, `@${displayName}`);
     } catch (e) {
       // Happens when a webhook is mentioned similar to a user, prevent 404 from crashing bot
-      this.logger.error(e);
+      if (e instanceof DiscordAPIError) {
+        this.logger.error(`Discord API error in user mention lookup, falling back to no mention:\n${e}`);
+      } else {
+        this.logger.error(e);
+      }
       return '';
     }
   }
