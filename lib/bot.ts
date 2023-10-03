@@ -90,7 +90,11 @@ export default class Bot {
       this.options.ignoreConfig.ignorePingIrcUsers = this.options.ignoreConfig.ignorePingIrcUsers
         ?.map((s) => s.toLocaleLowerCase());
     }
-    this.logger = new Dlog(options.nickname);
+    if (options.logToFile) {
+      this.logger = new Dlog(options.nickname, true, options.logFolder ?? '.');
+    } else {
+      this.logger = new Dlog(options.nickname);
+    }
     this.channels = Object.values(options.channelMapping);
     this.webhookOptions = options.webhooks ?? {};
     if (options.allowRolePings === undefined) {
