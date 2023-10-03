@@ -55,6 +55,8 @@ export type Config = {
   format?: Format;
   autoSendCommands?: [any, string][];
   allowRolePings?: boolean;
+  logToFile?: boolean;
+  logFolder?: string;
 };
 
 export const FormatSchema = z.object({
@@ -109,6 +111,8 @@ export const ConfigSchema = z.object({
   format: FormatSchema.optional(),
   autoSendCommands: z.array(z.tuple([z.unknown(), z.string()])).optional(),
   allowRolePings: z.boolean().optional(),
+  logToFile: z.boolean().optional(),
+  logFolder: z.string().optional(),
 });
 
 const ConfigArraySchema = z.array(ConfigSchema);

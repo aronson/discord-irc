@@ -78,23 +78,23 @@ jobs:
 
       - name: Compile AMD64 binary for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-linux-amd64 discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --allow-write --output discord-irc-linux-amd64 discord-irc.ts
 
       - name: Compile AMD64 binary for Windows
         if: matrix.os == 'windows-latest'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-windows-amd64.exe discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --allow-write --output discord-irc-windows-amd64.exe discord-irc.ts
 
       - name: Compile AMD64 binary for macOS
         if: matrix.os == 'macos-latest'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-macos-amd64 discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --allow-write --output discord-irc-macos-amd64 discord-irc.ts
 
       - name: Compile ARM64 binary for macOS
         if: runner.os == 'macOS'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-macos-arm64 --target aarch64-apple-darwin discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --allow-write --output discord-irc-macos-arm64 --target aarch64-apple-darwin discord-irc.ts
 
       - name: Compile ARM64 binary for Linux
         if: runner.os == 'Linux' && matrix.os == 'pi'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --output discord-irc-linux-arm64 discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE --allow-read --allow-write --output discord-irc-linux-arm64 discord-irc.ts
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
