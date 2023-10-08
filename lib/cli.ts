@@ -49,6 +49,9 @@ async function run() {
   // May still fail if invalid ircOptions
   if (Array.isArray(result.data)) {
     const valid = result.data.reduce((acc, config) => {
+      if (!config.ircOptions) {
+        return acc;
+      }
       const ircOptionsTestResult = testIrcOptions(config.ircOptions);
       if (ircOptionsTestResult !== null) {
         console.log('Error parsing ircOptions:');
