@@ -1,10 +1,10 @@
 import { ClientOptions, IrcClient } from './deps.ts';
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
-import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User, Webhook } from './deps.ts';
+import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User } from './deps.ts';
 import { validateChannelMapping } from './validators.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
-import { Dictionary, forEachAsync, invert, replaceAsync } from './helpers.ts';
+import { Dictionary, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
 import {
   createIrcActionListener,
@@ -27,6 +27,7 @@ import {
 } from './discordListeners.ts';
 import { AllWebhookMessageOptions } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/src/structures/webhook.ts';
 import { DiscordAPIError } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
+import { ChannelMapper } from './channelMapping.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
@@ -34,11 +35,6 @@ const USERNAME_MAX_LENGTH = 32;
 
 // const REQUIRED_FIELDS = ['server', 'nickname', 'channelMapping', 'discordToken'];
 const patternMatch = /{\$(.+?)}/g;
-
-type Hook = {
-  id: string;
-  client: Webhook;
-};
 
 /**
  * An IRC bot, works as a middleman for all communication
@@ -49,7 +45,6 @@ export default class Bot {
   logger: Dlog;
   options: Config;
   channels: string[];
-  webhookOptions: Dictionary<string>;
   ignoreConfig?: IgnoreConfig;
   gameLogConfig?: GameLogConfig;
   formatIRCText: string;
@@ -58,9 +53,7 @@ export default class Bot {
   formatDiscord: string;
   formatWebhookAvatarURL: string;
   channelUsers: Dictionary<Array<string>>;
-  channelMapping: Dictionary<string>;
-  webhooks: Dictionary<Hook>;
-  invertedMapping: Dictionary<string>;
+  channelMapping: ChannelMapper | null = null;
   ircClient: IrcClient;
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
   debug: boolean = (Deno.env.get('DEBUG') ?? Deno.env.get('VERBOSE') ?? 'false')
@@ -96,7 +89,6 @@ export default class Bot {
       this.logger = new Dlog(options.nickname);
     }
     this.channels = Object.values(options.channelMapping);
-    this.webhookOptions = options.webhooks ?? {};
     if (options.allowRolePings === undefined) {
       options.allowRolePings = true;
     }
@@ -132,19 +124,10 @@ export default class Bot {
     // Keep track of { channel => [list, of, usernames] } for ircStatusNotices
     this.channelUsers = {};
 
-    this.channelMapping = {};
-    this.webhooks = {};
-
     if (options.ircNickColors) {
       this.ircNickColors = options.ircNickColors;
     }
 
-    // Remove channel passwords from the mapping and lowercase IRC channel names
-    Object.entries(options.channelMapping).forEach(([discordChan, ircChan]) => {
-      this.channelMapping[discordChan] = ircChan.split(' ')[0].toLowerCase();
-    });
-
-    this.invertedMapping = invert(this.channelMapping);
     const ircOptions: ClientOptions = {
       nick: options.nickname,
       username: options.nickname,
@@ -165,22 +148,12 @@ export default class Bot {
     this.discord.connect();
 
     // Extract id and token from Webhook urls and connect.
-    await forEachAsync(
-      Object.entries(this.webhookOptions),
-      async ([channel, url]) => {
-        const [id, _] = url.split('/').slice(-2);
-        const client = await Webhook.fromURL(url, this.discord);
-        this.webhooks[channel] = {
-          id,
-          client,
-        };
-      },
-    );
+    this.channelMapping = await ChannelMapper.CreateAsync(this.options, this, this.discord);
 
     this.attachDiscordListeners();
     this.attachIrcListeners();
     await this.ircClient.connect(this.options.server);
-    Object.entries(this.invertedMapping).forEach(([ircChannel, _]) => {
+    Object.entries(this.channelMapping.ircNameToMapping).forEach(([ircChannel, _]) => {
       this.logger.info(`Joining channel ${ircChannel}`);
       this.ircClient.join(ircChannel);
     });
@@ -331,8 +304,8 @@ export default class Bot {
     // Ignore messages sent by the bot itself:
     if (
       author.id === this.discord.user?.id ||
-      Object.keys(this.webhooks).some(
-        (channel) => this.webhooks[channel].id === author.id,
+      Object.entries(this.channelMapping?.webhooks ?? []).some(
+        ([id, _]) => id === author.id,
       )
     ) {
       return;
@@ -346,8 +319,7 @@ export default class Bot {
     const channel = message.channel;
     if (!channel.isGuildText()) return;
     const channelName = `#${channel.name}`;
-    const ircChannel = this.channelMapping[channel.id] ||
-      this.channelMapping[channelName];
+    const ircChannel = this.channelMapping?.ircNameToMapping[channel.id].ircChannel;
 
     if (ircChannel) {
       const fromGuild = message.guild;
@@ -441,40 +413,17 @@ export default class Bot {
     }
   }
 
-  async findDiscordChannel(ircChannel: string) {
-    const discordChannelName = this.invertedMapping[ircChannel.toLowerCase()];
-    if (discordChannelName) {
-      // #channel -> channel before retrieving and select only text channels:
-      let discordChannel = await this.discord.channels.get(discordChannelName);
-
-      if (!discordChannel && discordChannelName.startsWith('#')) {
-        const channels = await this.discord.channels.array();
-        discordChannel = channels.find(
-          (c) =>
-            c.isGuildText() &&
-            c.name === discordChannelName.slice(1),
-        );
-      }
-      if (!discordChannel) {
-        this.logger.info(
-          `Tried to send a message to a channel the bot isn't in: ${discordChannelName}`,
-        );
-        return null;
-      }
-      return discordChannel;
-    }
-    return null;
+  findDiscordChannel(ircChannel: string) {
+    return this.channelMapping?.ircNameToMapping[ircChannel.toLowerCase()]?.discordChannel;
   }
 
   findWebhook(ircChannel: string) {
-    const discordChannelName = this.invertedMapping[ircChannel.toLowerCase()];
-    return discordChannelName && this.webhooks[discordChannelName];
+    return this.channelMapping?.ircNameToMapping[ircChannel.toLowerCase()].webhook;
   }
 
   async getDiscordAvatar(nick: string, channel: string) {
-    const channelRef = await this.findDiscordChannel(channel);
-    if (channelRef === null) return null;
-    if (!channelRef.isGuildText()) return null;
+    const channelRef = this.findDiscordChannel(channel);
+    if (!channelRef?.isGuildText()) return null;
     const guildMember = await channelRef.guild.members.search(nick);
 
     // Try to find exact matching case

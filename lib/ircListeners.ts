@@ -58,7 +58,8 @@ export function createIrcNoticeListener(bot: Bot) {
 
 export function createIrcNickListener(bot: Bot) {
   return (event: NickEvent) => {
-    Object.values(bot.channelMapping).forEach((channelName) => {
+    Object.values(bot.channelMapping?.discordIdToMapping ?? []).forEach((channelMapping) => {
+      const channelName = channelMapping.ircChannel;
       const channel = channelName.toLowerCase();
       const newNick = event.params.nick;
       const oldNick = event.source?.name ?? '';
@@ -149,7 +150,8 @@ export function createIrcQuitListener(bot: Bot) {
     bot.debug && bot.logger.debug(
       `Received quit: ${nick}`,
     );
-    Object.values(bot.channelMapping).forEach((channelName) => {
+    Object.values(bot.channelMapping?.ircNameToMapping ?? []).forEach((channelMapping) => {
+      const channelName = channelMapping.ircChannel;
       const channel = channelName.toLowerCase();
       const users = bot.channelUsers[channel];
       if (!users) {
@@ -201,7 +203,7 @@ export function createIrcInviteListener(bot: Bot) {
     const channel = event.params.channel;
     const from = event.params.nick;
     bot.debug && bot.logger.debug(`Received invite: ${channel} -- ${from}`);
-    if (!bot.invertedMapping[channel]) {
+    if (!bot.channelMapping?.ircNameToMapping[channel]) {
       bot.debug && bot.logger.debug(
         `Channel not found in config, not joining: ${channel}`,
       );
