@@ -128,81 +128,81 @@ First you need to create a Discord bot user, which you can do by following the i
 
 ### Example configuration
 
-```js
+```json
 [
   // Bot 1 (minimal configuration):
   {
-    'nickname': 'test2',
-    'server': 'irc.testbot.org',
-    'discordToken': 'botwantsin123',
-    'channelMapping': {
-      '#other-discord': '#new-irc-channel',
-    },
+    "nickname": "test2",
+    "server": "irc.testbot.org",
+    "discordToken": "botwantsin123",
+    "channelMapping": {
+      "#other-discord": "#new-irc-channel"
+    }
   },
 
   // Bot 2 (advanced options):
   {
-    'nickname': 'test',
-    'server': 'irc.bottest.org',
-    'discordToken': 'botwantsin123',
-    'autoSendCommands': [
+    "nickname": "test",
+    "server": "irc.bottest.org",
+    "discordToken": "botwantsin123",
+    "autoSendCommands": [
       // Commands that will be sent on connect
-      ['PRIVMSG', 'NickServ', 'IDENTIFY password'],
-      ['MODE', 'test', '+x'],
-      ['AUTH', 'test', 'password'],
+      ["PRIVMSG", "NickServ", "IDENTIFY password"],
+      ["MODE", "test", "+x"],
+      ["AUTH", "test", "password"]
     ],
-    'channelMapping': {
+    "channelMapping": {
       // Maps each Discord-channel to an IRC-channel, used to direct messages to the correct place
-      '#discord': '#irc channel-password', // Add channel keys after the channel name
-      1234567890: '#channel', // Use a discord channel ID instead of its name (so you can rename it or to disambiguate)
+      "#discord": "#irc channel-password", // Add channel keys after the channel name
+      1234567890: "#channel" // Use a discord channel ID instead of its name (so you can rename it or to disambiguate)
     },
-    'ircOptions': {
+    "ircOptions": {
       // Deno/irc options, see https://github.com/jeromeludmann/deno-irc/blob/main/API.md#options
-      'username': 'testt',
-      'password': 'p455w0rd',
+      "username": "test",
+      "password": "p455w0rd"
     },
-    'format': {
+    "format": {
       // Optional custom formatting options
       // Patterns, represented by {$patternName}, are replaced when sending messages
-      'commandPrelude': 'Command sent by {$nickname}', // Message sent before a command
-      'ircText': '<{$displayUsername} [@{$discordUsername}]> {$text}', // When sending a message to IRC
-      'urlAttachment': '<{$displayUsername}> {$attachmentURL}', // When sending a Discord attachment to IRC
-      'discord': '**<{$author}>** {$withMentions}', // When sending a message to Discord
+      "commandPrelude": "Command sent by {$nickname}", // Message sent before a command
+      "ircText": "<{$displayUsername} [@{$discordUsername}]> {$text}", // When sending a message to IRC
+      "urlAttachment": "<{$displayUsername}> {$attachmentURL}", // When sending a Discord attachment to IRC
+      "discord": "**<{$author}>** {$withMentions}", // When sending a message to Discord
       // Other patterns that can be used:
       // {$discordChannel} (e.g. #general)
       // {$ircChannel} (e.g. #irc)
-      'webhookAvatarURL': 'https://robohash.org/{$nickname}', // Default avatar to use for webhook messages
+      "webhookAvatarURL": "https://robohash.org/{$nickname}" // Default avatar to use for webhook messages
     },
-    'ircNickColor': false, // Gives usernames a color in IRC for better readability (on by default)
-    'ircNickColors': [
-      'light_blue',
-      'dark_blue',
-      'light_red',
-      'dark_red',
-      'light_green',
-      'dark_green',
-      'magenta',
-      'light_magenta',
-      'orange',
-      'yellow',
-      'cyan',
-      'light_cyan',
+    "ircNickColor": false, // Gives usernames a color in IRC for better readability (on by default)
+    "ircNickColors": [
+      "light_blue",
+      "dark_blue",
+      "light_red",
+      "dark_red",
+      "light_green",
+      "dark_green",
+      "magenta",
+      "light_magenta",
+      "orange",
+      "yellow",
+      "cyan",
+      "light_cyan"
     ], // Which irc-upd colors to use
-    'parallelPingFix': true, // Prevents users of both IRC and Discord from being mentioned in IRC when they speak in Discord (off by default)
+    "parallelPingFix": true, // Prevents users of both IRC and Discord from being mentioned in IRC when they speak in Discord (off by default)
     // Makes the bot hide the username prefix for messages that start
     // with one of these characters (commands):
-    'commandCharacters': ['!', '.'],
-    'ircStatusNotices': true, // Enables notifications in Discord when people join/part in the relevant IRC channel
-    'ignoreUsers': {
-      'irc': ['irc_nick1', 'irc_nick2'], // Ignore specified IRC nicks and do not send their messages to Discord.
-      'discord': ['discord_nick1', 'discord_nick2'], // Ignore specified Discord nicks and do not send their messages to IRC.
-      'discordIds': ['198528216523210752'], // Ignore specified Discord ids and do not send their messages to IRC.
+    "commandCharacters": ["!", "."],
+    "ircStatusNotices": true, // Enables notifications in Discord when people join/part in the relevant IRC channel
+    "ignoreUsers": {
+      "irc": ["irc_nick1", "irc_nick2"], // Ignore specified IRC nicks and do not send their messages to Discord.
+      "discord": ["discord_nick1", "discord_nick2"], // Ignore specified Discord nicks and do not send their messages to IRC.
+      "discordIds": ["198528216523210752"] // Ignore specified Discord ids and do not send their messages to IRC.
     },
     // List of webhooks per channel
-    'webhooks': {
-      '#discord': 'https://discord.com/api/webhooks/id/token',
+    "webhooks": {
+      "#discord": "https://discord.com/api/webhooks/id/token"
     },
-  },
+  }
 ];
 ```
 
