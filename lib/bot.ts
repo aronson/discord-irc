@@ -153,9 +153,9 @@ export default class Bot {
     this.attachDiscordListeners();
     this.attachIrcListeners();
     await this.ircClient.connect(this.options.server);
-    Object.entries(this.channelMapping.ircNameToMapping).forEach(([ircChannel, _]) => {
-      this.logger.info(`Joining channel ${ircChannel}`);
-      this.ircClient.join(ircChannel);
+    this.channelMapping.ircNameToMapping.forEach((entry) => {
+      this.logger.info(`Joining channel ${entry.ircChannel}`);
+      this.ircClient.join(entry.ircChannel);
     });
   }
 
@@ -314,7 +314,7 @@ export default class Bot {
     const channel = message.channel;
     if (!channel.isGuildText()) return;
     const channelName = `#${channel.name}`;
-    const ircChannel = this.channelMapping?.discordIdToMapping[channel.id]?.ircChannel;
+    const ircChannel = this.channelMapping?.discordIdToMapping.get(channel.id)?.ircChannel;
 
     if (ircChannel) {
       const fromGuild = message.guild;
@@ -416,11 +416,11 @@ export default class Bot {
   }
 
   findDiscordChannel(ircChannel: string) {
-    return this.channelMapping?.ircNameToMapping[ircChannel.toLowerCase()]?.discordChannel;
+    return this.channelMapping?.ircNameToMapping.get(ircChannel.toLowerCase())?.discordChannel;
   }
 
   findWebhook(ircChannel: string) {
-    return this.channelMapping?.ircNameToMapping[ircChannel.toLowerCase()]?.webhook;
+    return this.channelMapping?.ircNameToMapping.get(ircChannel.toLowerCase())?.webhook;
   }
 
   async getDiscordAvatar(nick: string, channel: string) {

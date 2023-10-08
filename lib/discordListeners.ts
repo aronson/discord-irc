@@ -30,10 +30,10 @@ export function createDiscordMessageListener(bot: Bot) {
     if (message.content.toLowerCase() === '/names') {
       if (!message.channel.isGuildText()) return;
       // return early if message was in channel we don't post to
-      if (!(Object.keys(bot.channelMapping?.discordIdToMapping ?? []).find((c) => c === message.channel.id))) {
+      if (!(bot.channelMapping?.discordIdToMapping.get(message.channel.id))) {
         return;
       }
-      const ircChannel = bot.channelMapping?.discordIdToMapping[message.channel.id].ircChannel;
+      const ircChannel = bot.channelMapping?.discordIdToMapping.get(message.channel.id)?.ircChannel;
       if (!ircChannel) return;
       if (bot.channelUsers[ircChannel]) {
         const ircNames = bot.channelUsers[ircChannel].values();

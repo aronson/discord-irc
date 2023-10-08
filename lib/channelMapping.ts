@@ -1,7 +1,6 @@
 import Bot from './bot.ts';
 import { Config } from './config.ts';
 import { Client, GuildTextChannel, Webhook } from './deps.ts';
-import { Dictionary } from './helpers.ts';
 
 type Hook = {
   id: string;
@@ -17,8 +16,8 @@ type ChannelMapping = {
 export class ChannelMapper {
   mappings: ChannelMapping[] = [];
   webhooks: Hook[] = [];
-  discordIdToMapping: Dictionary<ChannelMapping> = {};
-  ircNameToMapping: Dictionary<ChannelMapping> = {};
+  discordIdToMapping: Map<string, ChannelMapping> = new Map<string, ChannelMapping>();
+  ircNameToMapping: Map<string, ChannelMapping> = new Map<string, ChannelMapping>();
 
   public static CreateAsync = async (config: Config, bot: Bot, discord: Client) => {
     const me = new ChannelMapper();
@@ -61,8 +60,8 @@ export class ChannelMapper {
         me.webhooks.push(hook);
       }
       me.mappings.push(mapping);
-      me.discordIdToMapping[discordChannel.id] = mapping;
-      me.ircNameToMapping[ircChannelName] = mapping;
+      me.discordIdToMapping.set(discordChannel.id, mapping);
+      me.ircNameToMapping.set(ircChannelName, mapping);
     }
     return me;
   };
