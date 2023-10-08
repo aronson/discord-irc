@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run -A
 
-import { parseCLI, resolvePath } from './deps.ts';
+import { parseCLI, parseJSONC, resolvePath } from './deps.ts';
 import * as helpers from './helpers.ts';
 import { Config, parseConfigObject } from './config.ts';
 
@@ -38,7 +38,7 @@ async function run() {
     throw new Error('Config file could not be found.');
   }
 
-  const configObj = JSON.parse(await Deno.readTextFile(configFilePath));
+  const configObj = parseJSONC(await Deno.readTextFile(configFilePath));
   const result = parseConfigObject(configObj);
   if (!result.success) {
     console.log('Error parsing configuration:');
