@@ -40,8 +40,8 @@ export class ChannelMapper {
       // Check for webhook
       let webhookURL: string | null = null;
       if (config.webhooks) {
-        if (config.webhooks[discordChannel.name]) {
-          webhookURL = config.webhooks[discordChannel.name];
+        if (config.webhooks['#' + discordChannel.name]) {
+          webhookURL = config.webhooks['#' + discordChannel.name];
         } else if (config.webhooks[discordChannel.id]) {
           webhookURL = config.webhooks[discordChannel.id];
         }

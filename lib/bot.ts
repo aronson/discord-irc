@@ -302,12 +302,7 @@ export default class Bot {
   async sendToIRC(message: Message) {
     const { author } = message;
     // Ignore messages sent by the bot itself:
-    if (
-      author.id === this.discord.user?.id ||
-      Object.entries(this.channelMapping?.webhooks ?? []).some(
-        ([id, _]) => id === author.id,
-      )
-    ) {
+    if (author.id === this.discord.user?.id || this.channelMapping?.webhooks.find((w) => w.id === message.author.id)) {
       return;
     }
 
@@ -319,17 +314,24 @@ export default class Bot {
     const channel = message.channel;
     if (!channel.isGuildText()) return;
     const channelName = `#${channel.name}`;
-    const ircChannel = this.channelMapping?.ircNameToMapping[channel.id].ircChannel;
+    const ircChannel = this.channelMapping?.discordIdToMapping[channel.id]?.ircChannel;
 
     if (ircChannel) {
       const fromGuild = message.guild;
       if (!fromGuild) return;
-      const member = await fromGuild.members.fetch(author.id);
+      let displayUsername = '';
+      let discordUsername = '';
+      const member = await fromGuild.members.get(author.id);
+      if (member) {
+        displayUsername = member.nick || author.displayName || author.username;
+        discordUsername = member.user.username;
+      } else {
+        // Author is a webhook
+        displayUsername = message.author.displayName;
+        discordUsername = message.author.username;
+      }
 
       let text = await this.parseText(message);
-      let displayUsername = member.nick || author.displayName ||
-        author.username;
-      let discordUsername = member.user.username;
 
       if (this.options.parallelPingFix) {
         // Prevent users of both IRC and Discord from
@@ -418,18 +420,22 @@ export default class Bot {
   }
 
   findWebhook(ircChannel: string) {
-    return this.channelMapping?.ircNameToMapping[ircChannel.toLowerCase()].webhook;
+    return this.channelMapping?.ircNameToMapping[ircChannel.toLowerCase()]?.webhook;
   }
 
   async getDiscordAvatar(nick: string, channel: string) {
+    nick = nick.toLowerCase();
     const channelRef = this.findDiscordChannel(channel);
     if (!channelRef?.isGuildText()) return null;
-    const guildMember = await channelRef.guild.members.search(nick);
+    const guildMembers = await channelRef.guild.members.search(nick);
 
     // Try to find exact matching case
     // No matching user or more than one => default avatar
-    if (guildMember) {
-      const url = guildMember[0]?.avatarURL();
+    if (guildMembers) {
+      const member = guildMembers.find((m) =>
+        [m.user.username, m.user.displayName, m.nick].find((s) => s?.toLowerCase() === nick.toLowerCase())
+      );
+      const url = member?.avatarURL();
       if (url) return url;
     }
 
@@ -476,7 +482,7 @@ export default class Bot {
     ) {
       return;
     }
-    const discordChannel = await this.findDiscordChannel(ircChannel);
+    const discordChannel = this.findDiscordChannel(ircChannel);
     if (!discordChannel) return;
     const channelName = discordChannel.mention;
 
