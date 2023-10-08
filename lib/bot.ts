@@ -145,7 +145,7 @@ export default class Bot {
 
   async connect() {
     this.debug && this.logger.debug('Connecting to IRC and Discord');
-    this.discord.connect();
+    await this.discord.connect();
 
     // Extract id and token from Webhook urls and connect.
     this.channelMapping = await ChannelMapper.CreateAsync(this.options, this, this.discord);

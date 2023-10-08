@@ -68,15 +68,16 @@ export class ChannelMapper {
   };
 
   private static async findDiscordChannel(discordChannelName: string, discord: Client) {
-    let discordChannel = await discord.channels.get(discordChannelName);
+    const discordChannel = await discord.channels.get(discordChannelName);
 
     if (!discordChannel && discordChannelName.startsWith('#')) {
       const channels = await discord.channels.array();
-      discordChannel = channels.find(
+      const channel = channels.find(
         (c) =>
           c.isGuildText() &&
           c.name === discordChannelName.slice(1),
       );
+      return channel;
     }
     return discordChannel;
   }
