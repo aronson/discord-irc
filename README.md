@@ -154,7 +154,7 @@ First you need to create a Discord bot user, which you can do by following the i
     "channelMapping": {
       // Maps each Discord-channel to an IRC-channel, used to direct messages to the correct place
       "#discord": "#irc channel-password", // Add channel keys after the channel name
-      1234567890: "#channel" // Use a discord channel ID instead of its name (so you can rename it or to disambiguate)
+      "1234567890": "#channel" // Use a discord channel ID instead of its name (so you can rename it or to disambiguate)
     },
     "ircOptions": {
       // Deno/irc options, see https://github.com/jeromeludmann/deno-irc/blob/main/API.md#options
@@ -201,9 +201,9 @@ First you need to create a Discord bot user, which you can do by following the i
     // List of webhooks per channel
     "webhooks": {
       "#discord": "https://discord.com/api/webhooks/id/token"
-    },
+    }
   }
-];
+]
 ```
 
 The `ircOptions` object is passed directly to deno/irc
