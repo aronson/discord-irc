@@ -58,6 +58,10 @@ export function formatFromIRCToDiscord(
   let mdText = '';
 
   if (formattedText.needColorFormat) {
+    // Strip color and IRC formatting from bot messages that we're going to format
+    text = ircFormatting.strip(text);
+    // Strip manual bold discord formatting as well
+    text = text.replaceAll('**', '');
     mdText = formattedText.text + text;
     mdText += '\n```';
     return mdText;
