@@ -29,18 +29,12 @@ export function createDiscordMessageListener(bot: Bot) {
     // Show the IRC channel's /names list when asked for in Discord
     if (message.content.toLowerCase() === '/names') {
       if (!message.channel.isGuildText()) return;
-      const channelName = `#${message.channel.name}`;
       // return early if message was in channel we don't post to
-      if (
-        !(
-          Object.keys(bot.channelMapping).find((c) => c === channelName) ||
-          Object.keys(bot.channelMapping).find((c) => c === message.channel.id)
-        )
-      ) {
+      if (!(bot.channelMapping?.discordIdToMapping.get(message.channel.id))) {
         return;
       }
-      const ircChannel = bot.channelMapping[message.channel.id] ||
-        bot.channelMapping[channelName];
+      const ircChannel = bot.channelMapping?.discordIdToMapping.get(message.channel.id)?.ircChannel;
+      if (!ircChannel) return;
       if (bot.channelUsers[ircChannel]) {
         const ircNames = bot.channelUsers[ircChannel].values();
         const ircNamesArr = new Array(...ircNames);

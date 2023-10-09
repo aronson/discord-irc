@@ -18,6 +18,7 @@ export {
   Client,
   GatewayIntents,
   Guild,
+  GuildTextChannel,
   Message,
   User,
   Webhook,
