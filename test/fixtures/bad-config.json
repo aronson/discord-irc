@@ -1,9 +1,0 @@
-[
-  {
-    "server": "irc.bottest.org",
-    "discordToken": "hei",
-    "channelMapping": {
-      "#discord": "#irc"
-    }
-  }
-]
