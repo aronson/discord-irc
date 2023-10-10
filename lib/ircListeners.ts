@@ -189,8 +189,6 @@ export function createIrcQuitListener(bot: Bot) {
         `*${nick}* has quit (${reason})`,
       );
     });
-    console.log('quit');
-    console.log(event);
   };
 }
 
