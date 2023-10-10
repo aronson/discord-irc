@@ -100,7 +100,7 @@ export default class Bot {
     // displayUsername: nickname with wrapped colors
     // attachmentURL: the URL of the attachment (only applicable in formatURLAttachment)
     this.formatIRCText = config.format?.ircText ||
-      '<{$displayUsername}> {$text}';
+      '<{$displayUsername} [@{$discordUsername}]> {$text}';
     this.formatURLAttachment = config.format?.urlAttachment ||
       '<{$displayUsername}> {$attachmentURL}';
 
