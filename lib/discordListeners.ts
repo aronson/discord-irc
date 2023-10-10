@@ -4,7 +4,7 @@ import { Message } from './deps.ts';
 
 export function createDiscordReadyListener(bot: Bot) {
   return () => {
-    bot.logger.info('Connected to Discord');
+    bot.logger.done('Connected to Discord');
   };
 }
 

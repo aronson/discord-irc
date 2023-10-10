@@ -8,6 +8,9 @@ import { Dictionary, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
 import {
   createIrcActionListener,
+  createIrcConnectedListener,
+  createIrcConnectingListener,
+  createIrcDisconnectedListener,
   createIrcErrorListener,
   createIrcInviteListener,
   createIrcJoinListener,
@@ -17,6 +20,7 @@ import {
   createIrcPartListener,
   createIrcPrivMessageListener,
   createIrcQuitListener,
+  createIrcReconnectingListener,
   createIrcRegisterListener,
 } from './ircListeners.ts';
 import {
@@ -59,6 +63,7 @@ export default class Bot {
   debug: boolean = (Deno.env.get('DEBUG') ?? Deno.env.get('VERBOSE') ?? 'false')
     .toLowerCase() === 'true';
   verbose: boolean = (Deno.env.get('VERBOSE') ?? 'false').toLowerCase() === 'true';
+  exiting = false;
   constructor(config: Config) {
     validateChannelMapping(config.channelMapping);
 
@@ -155,6 +160,8 @@ export default class Bot {
   }
 
   async disconnect() {
+    this.exiting = true;
+    await this.ircClient.quit();
     this.ircClient.disconnect();
     await this.discord.destroy();
   }
@@ -180,6 +187,10 @@ export default class Bot {
     this.ircClient.on('nicklist', createIrcNicklistListener(this));
     this.ircClient.on('ctcp_action', createIrcActionListener(this));
     this.ircClient.on('invite', createIrcInviteListener(this));
+    this.ircClient.on('connecting', createIrcConnectingListener(this));
+    this.ircClient.on('connected', createIrcConnectedListener(this));
+    this.ircClient.on('disconnected', createIrcDisconnectedListener(this));
+    this.ircClient.on('reconnecting', createIrcReconnectingListener(this));
   }
 
   async getDiscordUserByString(userString: string, guild: Guild | undefined) {
