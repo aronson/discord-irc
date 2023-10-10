@@ -11,12 +11,30 @@ import {
   PrivmsgEvent,
   QuitEvent,
   RegisterEvent,
+  RemoteAddr,
 } from './deps.ts';
 import { forEachAsync } from './helpers.ts';
 
+export function createIrcConnectingListener(bot: Bot) {
+  return (addr: RemoteAddr) => {
+    bot.logger.info(
+      `Connecting to IRC server ${addr.hostname}:${addr.port} ${
+        addr.tls ? 'with TLS' : 'without TLS' +
+          '...'
+      }`,
+    );
+  };
+}
+
+export function createIrcConnectedListener(bot: Bot) {
+  return (addr: RemoteAddr) => {
+    bot.logger.done(`Connected to IRC server ${addr.hostname}:${addr.port}`);
+  };
+}
+
 export function createIrcRegisterListener(bot: Bot) {
   return (message: RegisterEvent) => {
-    bot.logger.info('Connected to IRC');
+    bot.logger.done('Registered to IRC server.');
     bot.debug && bot.logger.debug(
       `Registered event:\n${JSON.stringify(message, null, 2)}`,
     );
@@ -211,5 +229,24 @@ export function createIrcInviteListener(bot: Bot) {
       bot.ircClient.join(channel);
       bot.debug && bot.logger.debug(`Joining channel: ${channel}`);
     }
+  };
+}
+
+export function createIrcDisconnectedListener(bot: Bot) {
+  return (addr: RemoteAddr) => {
+    const message = `Disconnected from server ${addr.hostname}:${addr.port}`;
+    if (bot.exiting) {
+      bot.logger.done(message + '.');
+    } else {
+      bot.logger.error(message + '!');
+    }
+  };
+}
+
+export function createIrcReconnectingListener(bot: Bot) {
+  return (addr: RemoteAddr) => {
+    bot.logger.info(
+      `Attempting to reconnect to server ${addr.hostname}:${addr.port}...`,
+    );
   };
 }

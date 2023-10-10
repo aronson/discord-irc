@@ -9,6 +9,7 @@ export type { NickEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/nick.ts'
 export type { JoinEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/join.ts';
 export type { PartEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/part.ts';
 export type { QuitEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/quit.ts';
+export type { RemoteAddr } from 'https://deno.land/x/irc@v0.14.1/core/client.ts';
 export type { NicklistEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/nicklist.ts';
 export type { CtcpActionEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/action.ts';
 export type { InviteEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/invite.ts';
