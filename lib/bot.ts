@@ -100,7 +100,7 @@ export default class Bot {
     // displayUsername: nickname with wrapped colors
     // attachmentURL: the URL of the attachment (only applicable in formatURLAttachment)
     this.formatIRCText = config.format?.ircText ||
-      '<{$displayUsername}> {$text}';
+      '<{$displayUsername} [@{$discordUsername}]> {$text}';
     this.formatURLAttachment = config.format?.urlAttachment ||
       '<{$displayUsername}> {$attachmentURL}';
 
@@ -152,7 +152,7 @@ export default class Bot {
     this.channelMapping = await ChannelMapper.CreateAsync(this.config, this, this.discord);
 
     this.attachIrcListeners();
-    await this.ircClient.connect(this.config.server);
+    await this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
     this.channelMapping.ircNameToMapping.forEach((entry) => {
       this.logger.info(`Joining channel ${entry.ircChannel}`);
       this.ircClient.join(entry.ircChannel);
