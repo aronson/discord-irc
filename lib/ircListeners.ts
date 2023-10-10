@@ -21,7 +21,7 @@ export function createIrcRegisterListener(bot: Bot) {
       `Registered event:\n${JSON.stringify(message, null, 2)}`,
     );
     forEachAsync(
-      bot.options.autoSendCommands ?? [],
+      bot.config.autoSendCommands ?? [],
       async (element: [any, string]) => {
         await bot.ircClient.send(...element);
       },
@@ -69,7 +69,7 @@ export function createIrcNickListener(bot: Bot) {
         if (index !== -1) {
           users = users.splice(index, 1);
           users.push(newNick);
-          if (!bot.options.ircStatusNotices) return;
+          if (!bot.config.ircStatusNotices) return;
           bot.sendExactToDiscord(
             channel,
             `*${oldNick}* is now known as ${newNick}`,
@@ -90,18 +90,18 @@ export function createIrcJoinListener(bot: Bot) {
     const nick = event.source?.name ?? '';
     bot.debug && bot.logger.debug(`Received join: ${channelName} -- ${nick}`);
     const channel = channelName.toLowerCase();
-    if (nick === bot.options.nickname && !bot.options.announceSelfJoin) {
+    if (nick === bot.config.nickname && !bot.config.announceSelfJoin) {
       return;
     }
     // self-join is announced before names (which includes own nick)
     // so don't add nick to channelUsers
     if (
-      nick !== bot.options.nickname &&
+      nick !== bot.config.nickname &&
       bot.channelUsers[channel].indexOf(nick) === -1
     ) {
       bot.channelUsers[channel].push(nick);
     }
-    if (!bot.options.ircStatusNotices) return;
+    if (!bot.config.ircStatusNotices) return;
     await bot.sendExactToDiscord(
       channel,
       `*${nick}* has joined the channel`,
@@ -119,7 +119,7 @@ export function createIrcPartListener(bot: Bot) {
     );
     const channel = channelName.toLowerCase();
     // remove list of users when no longer in channel (as it will become out of date)
-    if (nick === bot.options.nickname) {
+    if (nick === bot.config.nickname) {
       bot.debug && bot.logger.debug(
         `Deleting channelUsers as bot parted: ${channel}`,
       );
@@ -135,7 +135,7 @@ export function createIrcPartListener(bot: Bot) {
         `No channelUsers found for ${channel} when ${nick} parted.`,
       );
     }
-    if (!bot.options.ircStatusNotices) return;
+    if (!bot.config.ircStatusNotices) return;
     await bot.sendExactToDiscord(
       channel,
       `*${nick}* has left the channel (${reason})`,
@@ -164,7 +164,7 @@ export function createIrcQuitListener(bot: Bot) {
       if (index === -1) return;
       else bot.channelUsers[channel] = users.splice(index, 1);
       if (
-        !bot.options.ircStatusNotices || nick === bot.options.nickname
+        !bot.config.ircStatusNotices || nick === bot.config.nickname
       ) return;
       bot.sendExactToDiscord(
         channel,

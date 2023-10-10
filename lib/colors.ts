@@ -41,9 +41,13 @@ const codes: Codes = {
   reset: '\u000f',
 };
 
-export { codes };
+type ColorKey = keyof typeof codes;
 
-function wrap(color: string, text: string, resetColor?: string): string {
+export type { ColorKey };
+
+function wrap(color: ColorKey, text: string): string;
+function wrap(color: ColorKey, text: string, resetColor: ColorKey): string;
+function wrap(color: ColorKey, text: string, resetColor?: ColorKey): string {
   if (codes[color]) {
     text = codes[color] + text;
     text += codes[resetColor ?? ''] ? codes[resetColor ?? ''] : codes.reset;

@@ -43,7 +43,7 @@ const patternMatch = /{\$(.+?)}/g;
 export default class Bot {
   discord: Client;
   logger: Dlog;
-  options: Config;
+  config: Config;
   channels: string[];
   ignoreConfig?: IgnoreConfig;
   gameLogConfig?: GameLogConfig;
@@ -59,13 +59,8 @@ export default class Bot {
   debug: boolean = (Deno.env.get('DEBUG') ?? Deno.env.get('VERBOSE') ?? 'false')
     .toLowerCase() === 'true';
   verbose: boolean = (Deno.env.get('VERBOSE') ?? 'false').toLowerCase() === 'true';
-  constructor(options: Config) {
-    /* REQUIRED_FIELDS.forEach((field) => {
-      if (!options[field]) {
-        throw new ConfigurationError(`Missing configuration field ${field}`);
-      }
-    }); */
-    validateChannelMapping(options.channelMapping);
+  constructor(config: Config) {
+    validateChannelMapping(config.channelMapping);
 
     this.discord = new Client({
       intents: [
@@ -74,70 +69,70 @@ export default class Bot {
         GatewayIntents.GUILD_MESSAGES,
         GatewayIntents.MESSAGE_CONTENT,
       ],
-      token: options.discordToken,
+      token: config.discordToken,
     });
 
-    this.options = options;
+    this.config = config;
     // Make usernames lowercase for IRC ignore
-    if (this.options.ignoreConfig) {
-      this.options.ignoreConfig.ignorePingIrcUsers = this.options.ignoreConfig.ignorePingIrcUsers
+    if (this.config.ignoreConfig) {
+      this.config.ignoreConfig.ignorePingIrcUsers = this.config.ignoreConfig.ignorePingIrcUsers
         ?.map((s) => s.toLocaleLowerCase());
     }
-    if (options.logToFile) {
-      this.logger = new Dlog(options.nickname, true, options.logFolder ?? '.');
+    if (config.logToFile) {
+      this.logger = new Dlog(config.nickname, true, config.logFolder ?? '.');
     } else {
-      this.logger = new Dlog(options.nickname);
+      this.logger = new Dlog(config.nickname);
     }
-    this.channels = Object.values(options.channelMapping);
-    if (options.allowRolePings === undefined) {
-      options.allowRolePings = true;
+    this.channels = Object.values(config.channelMapping);
+    if (config.allowRolePings === undefined) {
+      config.allowRolePings = true;
     }
 
-    this.gameLogConfig = options.gameLogConfig;
-    this.ignoreConfig = options.ignoreConfig;
+    this.gameLogConfig = config.gameLogConfig;
+    this.ignoreConfig = config.ignoreConfig;
 
     // "{$keyName}" => "variableValue"
     // displayUsername: nickname with wrapped colors
     // attachmentURL: the URL of the attachment (only applicable in formatURLAttachment)
-    this.formatIRCText = options.format?.ircText ||
+    this.formatIRCText = config.format?.ircText ||
       '<{$displayUsername}> {$text}';
-    this.formatURLAttachment = options.format?.urlAttachment ||
+    this.formatURLAttachment = config.format?.urlAttachment ||
       '<{$displayUsername}> {$attachmentURL}';
 
     // "{$keyName}" => "variableValue"
     // side: "Discord" or "IRC"
-    if (options.format && options.format.commandPrelude) {
-      this.formatCommandPrelude = options.format.commandPrelude;
+    if (config.format && config.format.commandPrelude) {
+      this.formatCommandPrelude = config.format.commandPrelude;
     } else {
       this.formatCommandPrelude = 'Command sent from {$side} by {$nickname}:';
     }
 
     // "{$keyName}" => "variableValue"
     // withMentions: text with appropriate mentions reformatted
-    this.formatDiscord = options.format?.discord ||
+    this.formatDiscord = config.format?.discord ||
       '**<{$author}>** {$withMentions}';
 
     // "{$keyName} => "variableValue"
     // nickname: nickame of IRC message sender
-    this.formatWebhookAvatarURL = options.format?.webhookAvatarURL ?? '';
+    this.formatWebhookAvatarURL = config.format?.webhookAvatarURL ?? '';
 
     // Keep track of { channel => [list, of, usernames] } for ircStatusNotices
     this.channelUsers = {};
 
-    if (options.ircNickColors) {
-      this.ircNickColors = options.ircNickColors;
+    if (config.ircNickColors) {
+      this.ircNickColors = config.ircNickColors;
     }
 
     const ircOptions: ClientOptions = {
-      nick: options.nickname,
-      username: options.nickname,
-      realname: options.nickname,
-      password: options.ircOptions?.password,
+      nick: config.nickname,
+      username: config.nickname,
+      realname: config.nickname,
+      password: config.ircOptions?.password,
       reconnect: {
         attempts: Number.MAX_SAFE_INTEGER,
         delay: 3,
       },
-      ...options.ircOptions,
+      ...config.ircOptions,
     };
 
     this.ircClient = new IrcClient(ircOptions);
@@ -145,14 +140,14 @@ export default class Bot {
 
   async connect() {
     this.debug && this.logger.debug('Connecting to IRC and Discord');
+    this.attachDiscordListeners();
     await this.discord.connect();
 
     // Extract id and token from Webhook urls and connect.
-    this.channelMapping = await ChannelMapper.CreateAsync(this.options, this, this.discord);
+    this.channelMapping = await ChannelMapper.CreateAsync(this.config, this, this.discord);
 
-    this.attachDiscordListeners();
     this.attachIrcListeners();
-    await this.ircClient.connect(this.options.server);
+    await this.ircClient.connect(this.config.server);
     this.channelMapping.ircNameToMapping.forEach((entry) => {
       this.logger.info(`Joining channel ${entry.ircChannel}`);
       this.ircClient.join(entry.ircChannel);
@@ -261,20 +256,20 @@ export default class Bot {
   }
 
   isCommandMessage(message: string) {
-    return this.options.commandCharacters?.some((prefix: string) => message.startsWith(prefix)) ?? false;
+    return this.config.commandCharacters?.some((prefix: string) => message.startsWith(prefix)) ?? false;
   }
 
   ignoredIrcUser(user: string) {
-    return this.options.ignoreUsers?.irc.some(
+    return this.config.ignoreUsers?.irc.some(
       (i: string) => i.toLowerCase() === user.toLowerCase(),
     ) ?? false;
   }
 
   ignoredDiscordUser(discordUser: { username: string; id: string }) {
-    const ignoredName = this.options.ignoreUsers?.discord.some(
+    const ignoredName = this.config.ignoreUsers?.discord.some(
       (i) => i.toLowerCase() === discordUser.username.toLowerCase(),
     );
-    const ignoredId = this.options.ignoreUsers?.discordIds.some(
+    const ignoredId = this.config.ignoreUsers?.discordIds.some(
       (i) => i === discordUser.id,
     );
     return ignoredName || ignoredId || false;
@@ -333,7 +328,7 @@ export default class Bot {
 
       let text = await this.parseText(message);
 
-      if (this.options.parallelPingFix) {
+      if (this.config.parallelPingFix) {
         // Prevent users of both IRC and Discord from
         // being mentioned in IRC when they talk in Discord.
         displayUsername = `${
@@ -344,7 +339,7 @@ export default class Bot {
         }\u200B${displayUsername.slice(1)}`;
       }
 
-      if (this.options.ircNickColor) {
+      if (this.config.ircNickColor) {
         const displayColorIdx = (displayUsername.charCodeAt(0) + displayUsername.length) %
             this.ircNickColors.length ?? 0;
         const discordColorIdx = (discordUsername.charCodeAt(0) + discordUsername.length) %
@@ -535,7 +530,7 @@ export default class Bot {
     if (!channels) return;
 
     const processMentionables = async (input: string) => {
-      if (this.options.ignoreConfig?.ignorePingIrcUsers?.includes(author.toLocaleLowerCase())) return input;
+      if (this.config.ignoreConfig?.ignorePingIrcUsers?.includes(author.toLocaleLowerCase())) return input;
       return await replaceAsync(
         input,
         /([^@\s:,]+):|@([^\s]+)/g,
@@ -546,7 +541,7 @@ export default class Bot {
           // @username => mention, case insensitively
           if (member) return `<@${member.id}>`;
 
-          if (!this.options.allowRolePings) return match;
+          if (!this.config.allowRolePings) return match;
           // @role => mention, case insensitively
           const role = roles.find(
             (x) => x.mentionable && Bot.caseComp(x.name, reference),
