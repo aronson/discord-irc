@@ -144,6 +144,8 @@ First you need to create a Discord bot user, which you can do by following the i
   {
     "nickname": "test",
     "server": "irc.bottest.org",
+    "port": 6697,
+    "tls": true,
     "discordToken": "botwantsin123",
     "autoSendCommands": [
       // Commands that will be sent on connect
