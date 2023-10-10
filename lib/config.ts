@@ -33,6 +33,8 @@ export type IgnoreConfig = {
 
 export type Config = {
   server: string;
+  port?: number;
+  tls?: boolean;
   nickname: string;
   discordToken: string;
   channelMapping: Dictionary<string>;
@@ -94,6 +96,8 @@ export const IgnoreConfigSchema = z.object({
 
 export const ConfigSchema = z.object({
   server: z.string(),
+  port: z.number().optional(),
+  tls: z.boolean().optional(),
   nickname: z.string(),
   discordToken: z.string(),
   channelMapping: z.record(z.string()),
