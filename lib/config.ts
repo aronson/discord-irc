@@ -11,9 +11,9 @@ export type Format = {
 };
 
 export type IgnoreUsers = {
-  irc: string[];
-  discord: string[];
-  discordIds: string[];
+  irc?: string[];
+  discord?: string[];
+  discordIds?: string[];
 };
 
 export type GameLogConfig = {
@@ -72,9 +72,9 @@ export const FormatSchema = z.object({
 });
 
 export const IgnoreUsersSchema = z.object({
-  irc: z.array(z.string()),
-  discord: z.array(z.string()),
-  discordIds: z.array(z.string()),
+  irc: z.array(z.string()).optional(),
+  discord: z.array(z.string()).optional(),
+  discordIds: z.array(z.string()).optional(),
 });
 
 export const GameLogConfigSchema = z.object({

@@ -276,16 +276,16 @@ export default class Bot {
   }
 
   ignoredIrcUser(user: string) {
-    return this.config.ignoreUsers?.irc.some(
+    return this.config.ignoreUsers?.irc?.some(
       (i: string) => i.toLowerCase() === user.toLowerCase(),
     ) ?? false;
   }
 
   ignoredDiscordUser(discordUser: { username: string; id: string }) {
-    const ignoredName = this.config.ignoreUsers?.discord.some(
+    const ignoredName = this.config.ignoreUsers?.discord?.some(
       (i) => i.toLowerCase() === discordUser.username.toLowerCase(),
     );
-    const ignoredId = this.config.ignoreUsers?.discordIds.some(
+    const ignoredId = this.config.ignoreUsers?.discordIds?.some(
       (i) => i === discordUser.id,
     );
     return ignoredName || ignoredId || false;
