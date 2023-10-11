@@ -1,5 +1,6 @@
 import Bot from './bot.ts';
 import {
+  AnyRawCommand,
   ClientError,
   CtcpActionEvent,
   InviteEvent,
@@ -40,8 +41,15 @@ export function createIrcRegisterListener(bot: Bot) {
     );
     forEachAsync(
       bot.config.autoSendCommands ?? [],
-      async (element: [any, string]) => {
-        await bot.ircClient.send(...element);
+      async (element) => {
+        const command: AnyRawCommand = element[0] as AnyRawCommand;
+        const reducedElements = element.slice(1);
+        if (!command) {
+          bot.logger.warn(`Auto-send command ${element[0]} not a valid IRC command! Skipping...`);
+          return;
+        }
+        bot.logger.debug(`Sending auto-send command ${element}`);
+        await bot.ircClient.send(command, ...reducedElements);
       },
     );
   };

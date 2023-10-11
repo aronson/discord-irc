@@ -13,6 +13,7 @@ export type { RemoteAddr } from 'https://deno.land/x/irc@v0.14.1/core/client.ts'
 export type { NicklistEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/nicklist.ts';
 export type { CtcpActionEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/action.ts';
 export type { InviteEvent } from 'https://deno.land/x/irc@v0.14.1/plugins/invite.ts';
+export type { AnyRawCommand } from 'https://deno.land/x/irc@v0.14.1/core/protocol.ts';
 // Harmony/Discord exports
 export {
   AllowedMentionType,
