@@ -31,6 +31,8 @@ export type IgnoreConfig = {
   ignorePingIrcUsers?: string[];
 };
 
+const AutoSendSchema = z.array(z.array(z.string())).optional();
+
 export type Config = {
   server: string;
   port?: number;
@@ -55,7 +57,7 @@ export type Config = {
   // ircChannel: IRC channel (e.g. #irc)
   // text: the (appropriately formatted) message content
   format?: Format;
-  autoSendCommands?: [any, string][];
+  autoSendCommands?: z.infer<typeof AutoSendSchema>;
   allowRolePings?: boolean;
   logToFile?: boolean;
   logFolder?: string;
@@ -113,7 +115,7 @@ export const ConfigSchema = z.object({
   gameLogConfig: GameLogConfigSchema.optional(),
   ignoreConfig: IgnoreConfigSchema.optional(),
   format: FormatSchema.optional(),
-  autoSendCommands: z.array(z.tuple([z.unknown(), z.string()])).optional(),
+  autoSendCommands: AutoSendSchema,
   allowRolePings: z.boolean().optional(),
   logToFile: z.boolean().optional(),
   logFolder: z.string().optional(),
