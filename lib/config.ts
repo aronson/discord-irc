@@ -103,7 +103,7 @@ export const ConfigSchema = z.object({
   nickname: z.string(),
   discordToken: z.string(),
   channelMapping: z.record(z.string()),
-  ircOptions: z.unknown().optional(),
+  ircOptions: z.custom<Partial<ClientOptions>>().optional(),
   commandCharacters: z.array(z.string()).optional(),
   ircNickColor: z.boolean().optional(),
   ircNickColors: z.array(z.string()).optional(),
