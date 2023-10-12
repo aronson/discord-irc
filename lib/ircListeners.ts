@@ -98,7 +98,7 @@ export function createIrcNickListener(bot: Bot) {
           if (!bot.config.ircStatusNotices) return;
           bot.sendExactToDiscord(
             channel,
-            `*${oldNick}* is now known as ${newNick}`,
+            `*${oldNick}* is now known as ${newNick} in the connected IRC server`,
           );
         }
       } else {
@@ -135,7 +135,7 @@ export function createIrcJoinListener(bot: Bot) {
     if (!bot.config.ircStatusNotices) return;
     await bot.sendExactToDiscord(
       channel,
-      `*${nick}* has joined the channel`,
+      `*${nick}* has joined the connected IRC channel`,
     );
   };
 }
@@ -169,7 +169,7 @@ export function createIrcPartListener(bot: Bot) {
     if (!bot.config.ircStatusNotices) return;
     await bot.sendExactToDiscord(
       channel,
-      `*${nick}* has left the channel (${reason})`,
+      `*${nick}* has left the connected IRC channel (${reason})`,
     );
   };
 }
@@ -199,7 +199,7 @@ export function createIrcQuitListener(bot: Bot) {
       ) return;
       bot.sendExactToDiscord(
         channel,
-        `*${nick}* has quit (${reason})`,
+        `*${nick}* has quit from the connected IRC server (${reason})`,
       );
     });
   };
