@@ -310,6 +310,40 @@ export default class Bot {
     );
   }
 
+  splitAndSend(ircChannel: string, input: string) {
+    // Split up the string and use `reduce`
+    // to iterate over it
+    const temp = input.split(' ').reduce((acc: string[][], c) => {
+      // Get the number of nested arrays
+      const currIndex = acc.length - 1;
+
+      // Join up the last array and get its length
+      const currLen = acc[currIndex].join(' ').length;
+
+      // If the length of that content and the new word
+      // in the iteration exceeds 20 chars push the new
+      // word to a new array
+      if (currLen + c.length > 400) {
+        acc.push([c]);
+
+        // otherwise add it to the existing array
+      } else {
+        acc[currIndex].push(c);
+      }
+
+      return acc;
+    }, [[]]);
+
+    // Join up all the nested arrays
+    const out = temp.map((arr) => arr.join(' '));
+
+    let timeout = 0;
+    for (const chunk of out) {
+      setTimeout(() => this.ircClient.privmsg(ircChannel, chunk.trim()), timeout);
+      timeout += 2500;
+    }
+  }
+
   async sendToIRC(message: Message) {
     const { author } = message;
     // Ignore messages sent by the bot itself:
@@ -394,7 +428,7 @@ export default class Bot {
           );
           this.ircClient.privmsg(ircChannel, prelude);
         }
-        this.ircClient.privmsg(ircChannel, text);
+        this.splitAndSend(ircChannel, text);
       } else {
         if (text !== '') {
           // Convert formatting
@@ -405,7 +439,7 @@ export default class Bot {
           this.debug && this.logger.debug(
             `Sending message to IRC ${ircChannel} -- ${text}`,
           );
-          this.ircClient.privmsg(ircChannel, text);
+          this.splitAndSend(ircChannel, text);
         }
 
         if (message.attachments && message.attachments.length) {
@@ -419,7 +453,7 @@ export default class Bot {
             this.debug && this.logger.debug(
               `Sending attachment URL to IRC ${ircChannel} ${urlMessage}`,
             );
-            this.ircClient.privmsg(ircChannel, urlMessage);
+            this.splitAndSend(ircChannel, text);
           });
         }
       }
