@@ -29,3 +29,5 @@ export {
 export { resolve as resolvePath } from 'https://deno.land/std@0.203.0/path/mod.ts';
 export { parse as parseCLI } from 'https://deno.land/std@0.203.0/flags/mod.ts';
 export { parse as parseJSONC } from 'https://deno.land/std@0.203.0/jsonc/mod.ts';
+// Queue export
+export { Queue } from 'https://deno.land/x/queue@1.2.0/mod.ts';

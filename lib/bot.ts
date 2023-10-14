@@ -1,10 +1,10 @@
-import { ClientOptions, IrcClient } from './deps.ts';
+import { ClientOptions, IrcClient, Queue } from './deps.ts';
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
 import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User } from './deps.ts';
 import { validateChannelMapping } from './validators.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
-import { Dictionary, replaceAsync } from './helpers.ts';
+import { delay, Dictionary, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
 import {
   createIrcActionListener,
@@ -49,6 +49,7 @@ export default class Bot {
   logger: Dlog;
   config: Config;
   channels: string[];
+  ircMessageQueue: Queue = new Queue();
   ignoreConfig?: IgnoreConfig;
   gameLogConfig?: GameLogConfig;
   formatIRCText: string;
@@ -91,6 +92,10 @@ export default class Bot {
     this.channels = Object.values(config.channelMapping);
     if (config.allowRolePings === undefined) {
       config.allowRolePings = true;
+    }
+    if (!config.floodProtectionDelayMilliseconds) {
+      // 2 seconds is a safe default
+      config.floodProtectionDelayMilliseconds = 2000;
     }
 
     this.gameLogConfig = config.gameLogConfig;
@@ -310,37 +315,39 @@ export default class Bot {
     );
   }
 
-  splitAndSend(ircChannel: string, input: string) {
+  sendIRCMessageWithSplitAndQueue(ircChannel: string, input: string) {
     // Split up the string and use `reduce`
     // to iterate over it
-    const temp = input.split(' ').reduce((acc: string[][], c) => {
+    const accumulatedChunks = input.split(' ').reduce((accumulator: string[][], fragment: string) => {
       // Get the number of nested arrays
-      const currIndex = acc.length - 1;
+      const currIndex = accumulator.length - 1;
 
       // Join up the last array and get its length
-      const currLen = acc[currIndex].join(' ').length;
+      const currLen = accumulator[currIndex].join(' ').length;
 
       // If the length of that content and the new word
-      // in the iteration exceeds 20 chars push the new
+      // in the iteration exceeds 400 chars push the new
       // word to a new array
-      if (currLen + c.length > 400) {
-        acc.push([c]);
+      if (currLen + fragment.length > 400) {
+        accumulator.push([fragment]);
 
         // otherwise add it to the existing array
       } else {
-        acc[currIndex].push(c);
+        accumulator[currIndex].push(fragment);
       }
 
-      return acc;
+      return accumulator;
     }, [[]]);
 
     // Join up all the nested arrays
-    const out = temp.map((arr) => arr.join(' '));
+    const messageChunks = accumulatedChunks.map((arr) => arr.join(' '));
 
-    let timeout = 0;
-    for (const chunk of out) {
-      setTimeout(() => this.ircClient.privmsg(ircChannel, chunk.trim()), timeout);
-      timeout += 2500;
+    for (const chunk of messageChunks) {
+      const sendMessage = () => this.ircClient.privmsg(ircChannel, chunk.trim());
+      this.ircMessageQueue.push(async () => {
+        sendMessage();
+        await delay(this.config.floodProtectionDelayMilliseconds);
+      });
     }
   }
 
@@ -428,7 +435,7 @@ export default class Bot {
           );
           this.ircClient.privmsg(ircChannel, prelude);
         }
-        this.splitAndSend(ircChannel, text);
+        this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
       } else {
         if (text !== '') {
           // Convert formatting
@@ -439,7 +446,7 @@ export default class Bot {
           this.debug && this.logger.debug(
             `Sending message to IRC ${ircChannel} -- ${text}`,
           );
-          this.splitAndSend(ircChannel, text);
+          this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
         }
 
         if (message.attachments && message.attachments.length) {
@@ -453,7 +460,7 @@ export default class Bot {
             this.debug && this.logger.debug(
               `Sending attachment URL to IRC ${ircChannel} ${urlMessage}`,
             );
-            this.splitAndSend(ircChannel, text);
+            this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
           });
         }
       }

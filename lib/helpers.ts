@@ -2,6 +2,10 @@ import { ConfigurationError } from './errors.ts';
 import { Config } from './config.ts';
 import Bot from './bot.ts';
 
+export function delay(ms = 0) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function exists(filename: string) {
   try {
     await Deno.stat(filename);
