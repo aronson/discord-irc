@@ -2,6 +2,7 @@ name: Publish Docker Image and Native Binaries
 
 on:
   push:
+    branches: "*"
     paths:
       - .github/workflows/build.yaml
       - discord-irc.ts
@@ -100,4 +101,27 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ runner.os }}-${{ runner.os == 'macOS' && 'X64-ARM64' || runner.arch }}
+          path: ./discord-irc-*
+
+  build-freebsd:
+    name: Publish Native FreeBSD Binary
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v3
+      - name: Compile AMD64 binary for FreeBSD
+        uses: cross-platform-actions/action@v0.15.0
+        with:
+          operating_system: freebsd
+          version: "13.2"
+          run: |
+            sudo pkg install -y git
+            sudo git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
+            sudo pkg install -y www/deno
+            deno task prepare
+            mv discord-irc discord-irc-freebsd-x64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: FreeBSD-${{ runner.arch }}
           path: ./discord-irc-*
