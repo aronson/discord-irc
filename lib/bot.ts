@@ -93,7 +93,7 @@ export default class Bot {
     if (config.allowRolePings === undefined) {
       config.allowRolePings = true;
     }
-    if (!config.floodProtectionDelayMilliseconds) {
+    if (config.floodProtectionDelayMilliseconds === undefined) {
       // 2 seconds is a safe default
       config.floodProtectionDelayMilliseconds = 2000;
     }
