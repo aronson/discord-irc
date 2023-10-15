@@ -1,10 +1,10 @@
-import { ClientOptions, IrcClient, Queue } from './deps.ts';
+import { ClientOptions, IrcClient } from './deps.ts';
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
 import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User } from './deps.ts';
 import { validateChannelMapping } from './validators.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
-import { delay, Dictionary, replaceAsync } from './helpers.ts';
+import { Dictionary, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
 import {
   createIrcActionListener,
@@ -49,7 +49,6 @@ export default class Bot {
   logger: Dlog;
   config: Config;
   channels: string[];
-  ircMessageQueue: Queue = new Queue();
   ignoreConfig?: IgnoreConfig;
   gameLogConfig?: GameLogConfig;
   formatIRCText: string;
@@ -343,11 +342,7 @@ export default class Bot {
     const messageChunks = accumulatedChunks.map((arr) => arr.join(' '));
 
     for (const chunk of messageChunks) {
-      const sendMessage = () => this.ircClient.privmsg(ircChannel, chunk.trim());
-      this.ircMessageQueue.push(async () => {
-        sendMessage();
-        await delay(this.config.floodProtectionDelayMilliseconds);
-      });
+      this.ircClient.privmsg(ircChannel, chunk.trim());
     }
   }
 
