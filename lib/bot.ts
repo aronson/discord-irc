@@ -92,6 +92,10 @@ export default class Bot {
     if (config.allowRolePings === undefined) {
       config.allowRolePings = true;
     }
+    if (config.floodProtectionDelayMilliseconds === undefined) {
+      // 2 seconds is a safe default
+      config.floodProtectionDelayMilliseconds = 2000;
+    }
 
     this.gameLogConfig = config.gameLogConfig;
     this.ignoreConfig = config.ignoreConfig;
@@ -310,6 +314,38 @@ export default class Bot {
     );
   }
 
+  sendIRCMessageWithSplitAndQueue(ircChannel: string, input: string) {
+    // Split up the string and use `reduce`
+    // to iterate over it
+    const accumulatedChunks = input.split(' ').reduce((accumulator: string[][], fragment: string) => {
+      // Get the number of nested arrays
+      const currIndex = accumulator.length - 1;
+
+      // Join up the last array and get its length
+      const currLen = accumulator[currIndex].join(' ').length;
+
+      // If the length of that content and the new word
+      // in the iteration exceeds 400 chars push the new
+      // word to a new array
+      if (currLen + fragment.length > 400) {
+        accumulator.push([fragment]);
+
+        // otherwise add it to the existing array
+      } else {
+        accumulator[currIndex].push(fragment);
+      }
+
+      return accumulator;
+    }, [[]]);
+
+    // Join up all the nested arrays
+    const messageChunks = accumulatedChunks.map((arr) => arr.join(' '));
+
+    for (const chunk of messageChunks) {
+      this.ircClient.privmsg(ircChannel, chunk.trim());
+    }
+  }
+
   async sendToIRC(message: Message) {
     const { author } = message;
     // Ignore messages sent by the bot itself:
@@ -394,7 +430,7 @@ export default class Bot {
           );
           this.ircClient.privmsg(ircChannel, prelude);
         }
-        this.ircClient.privmsg(ircChannel, text);
+        this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
       } else {
         if (text !== '') {
           // Convert formatting
@@ -405,7 +441,7 @@ export default class Bot {
           this.debug && this.logger.debug(
             `Sending message to IRC ${ircChannel} -- ${text}`,
           );
-          this.ircClient.privmsg(ircChannel, text);
+          this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
         }
 
         if (message.attachments && message.attachments.length) {
@@ -419,7 +455,7 @@ export default class Bot {
             this.debug && this.logger.debug(
               `Sending attachment URL to IRC ${ircChannel} ${urlMessage}`,
             );
-            this.ircClient.privmsg(ircChannel, urlMessage);
+            this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
           });
         }
       }
