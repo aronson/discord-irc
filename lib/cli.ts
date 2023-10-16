@@ -1,4 +1,5 @@
 #!/usr/bin/env -S deno run -A
+import { Dlog } from './deps.ts';
 
 import { parseCLI, parseJSONC, resolvePath } from './deps.ts';
 import * as helpers from './helpers.ts';
@@ -25,6 +26,7 @@ function testIrcOptions(obj: any): string | null {
 
 async function run() {
   const opts = parseCLI(Deno.args, { alias: { c: 'config' } });
+  const logger = new Dlog('discord-irc');
 
   let configFilePath: string;
   if (opts.config) {
@@ -35,13 +37,14 @@ async function run() {
   configFilePath = resolvePath(configFilePath);
 
   if (!await helpers.exists(configFilePath)) {
-    throw new Error('Config file could not be found.');
+    logger.error('Config file could not be found.');
+    return;
   }
 
   const configObj = parseJSONC(await Deno.readTextFile(configFilePath));
   const result = parseConfigObject(configObj);
   if (!result.success) {
-    console.log('Error parsing configuration:');
+    logger.error('Error parsing configuration:');
     console.log(result.error);
     return;
   }
@@ -54,7 +57,7 @@ async function run() {
       }
       const ircOptionsTestResult = testIrcOptions(config.ircOptions);
       if (ircOptionsTestResult !== null) {
-        console.log('Error parsing ircOptions:');
+        logger.error('Error parsing ircOptions:');
         console.log(ircOptionsTestResult);
         return false;
       }
@@ -66,20 +69,20 @@ async function run() {
   } else {
     const ircOptionsTestResult = testIrcOptions(result.data.ircOptions);
     if (ircOptionsTestResult !== null) {
-      console.log('Error parsing ircOptions:');
+      logger.error('Error parsing ircOptions:');
       console.log(ircOptionsTestResult);
     } else {
       config = result.data as Config;
     }
   }
   if (!config) {
-    console.log('Cannot start due to invalid configuration');
+    logger.error('Cannot start due to invalid configuration');
     return;
   }
   const bots = helpers.createBots(config);
   // Graceful shutdown of network clients
   Deno.addSignalListener('SIGINT', async () => {
-    bots[0].logger.warn('Received Ctrl+C! Disconnecting...');
+    logger.warn('Received Ctrl+C! Disconnecting...');
     await helpers.forEachAsync(bots, async (bot) => {
       try {
         await bot.disconnect();

@@ -1,5 +1,4 @@
-import { ClientOptions, IrcClient } from './deps.ts';
-import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
+import { ClientOptions, Dlog, IrcClient } from './deps.ts';
 import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User } from './deps.ts';
 import { validateChannelMapping } from './validators.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
