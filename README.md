@@ -1,8 +1,10 @@
-[![CI](https://github.com/aronson/discord-irc/actions/workflows/ci.yaml/badge.svg)](https://github.com/aronson/discord-irc/actions/workflows/ci.yaml)
-[![Publish Docker Image and Native Binaries](https://github.com/aronson/discord-irc/actions/workflows/build.yaml/badge.svg)](https://github.com/aronson/discord-irc/actions/workflows/build.yaml)
+# Discord and IRC Relay
 
 > Connects [Discord](https://discord.com/) and [IRC](https://www.ietf.org/rfc/rfc1459.txt) channels by sending messages
 > back and forth. This project was originally written [here](https://github.com/reactiflux/discord-irc).
+
+[![CI](https://github.com/aronson/discord-irc/actions/workflows/ci.yaml/badge.svg)](https://github.com/aronson/discord-irc/actions/workflows/ci.yaml)
+[![Publish Docker Image and Native Binaries](https://github.com/aronson/discord-irc/actions/workflows/build.yaml/badge.svg)](https://github.com/aronson/discord-irc/actions/workflows/build.yaml)
 
 ## Example
 
@@ -17,7 +19,7 @@ Before you can run discord-irc you need to create a configuration file by follow
 
 Start the bot by downloading the [latest release](https://github.com/aronson/discord-irc/releases) for your platform.
 
-#### Windows:
+#### Windows
 
 The easiest method is place your config.json in the same folder as discord-irc-windows-x86_64.exe and double-click the
 application.
@@ -28,7 +30,7 @@ To run manually from command line, or adjust the config file path:
 .\discord-irc-windows-x86_64.exe -c .\config.json
 ```
 
-#### Linux/macOS:
+#### Linux/macOS
 
 ```bash
 ## Linux users may need to mark as executable first
@@ -39,6 +41,27 @@ chmod +x ./discord-irc-linux-x64
 chmod +x ./discord-irc-apple-* && xattr -c ./discord-irc-apple-*
 ./discord-irc-apple-* -c ./config.json
 ```
+
+#### OpenBSD
+
+OpenBSD's Deno distribution currently fails to produce a binary for discord-irc. For now, users should run from source:
+
+```bash
+## Install git if not present
+pkg_add git
+## Install deno
+pkg_add deno
+## Clone the repo
+git clone https://github.com/aronson/discord-irc.git
+## Copy your config.json in
+cp /path/to/config.json discord-irc/
+## Enter source directory
+cd discord-irc/
+## Start with deno.
+deno task start
+```
+
+Deno is only provided as a binary package on OpenBSD 7.4+.
 
 #### Config file location
 
@@ -54,10 +77,10 @@ platform.
 ```bash
 ## Clone the repo
 git clone https://github.com/aronson/discord-irc.git
-## copy your config.json in
-cp /path/to/config.json discord-irc
+## Copy your config.json in
+cp /path/to/config.json discord-irc/
 ## Enter source directory
-cd discord-irc
+cd discord-irc/
 ## Start with deno.
 deno task start
 
