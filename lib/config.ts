@@ -41,7 +41,6 @@ export type Config = {
   discordToken: string;
   channelMapping: Dictionary<string>;
   ircOptions?: Partial<ClientOptions>;
-  floodProtectionDelayMilliseconds?: number;
   commandCharacters?: string[];
   ircNickColor?: boolean;
   ircNickColors?: string[];
@@ -105,7 +104,6 @@ export const ConfigSchema = z.object({
   discordToken: z.string(),
   channelMapping: z.record(z.string()),
   ircOptions: z.custom<Partial<ClientOptions>>().optional(),
-  floodProtectionDelayMilliseconds: z.number().optional(),
   commandCharacters: z.array(z.string()).optional(),
   ircNickColor: z.boolean().optional(),
   ircNickColors: z.array(z.string()).optional(),
