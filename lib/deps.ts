@@ -1,19 +1,19 @@
 // IRC exports
-export { Client as IrcClient } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/mod.ts';
-export type { ClientOptions } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/mod.ts';
-export type { PrivmsgEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/privmsg.ts';
-export type { ClientError } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/core/errors.ts';
-export type { RegisterEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/register.ts';
-export type { NoticeEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/notice.ts';
-export type { NickEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/nick.ts';
-export type { JoinEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/join.ts';
-export type { PartEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/part.ts';
-export type { QuitEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/quit.ts';
-export type { RemoteAddr } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/core/client.ts';
-export type { NicklistEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/nicklist.ts';
-export type { CtcpActionEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/action.ts';
-export type { InviteEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/invite.ts';
-export type { AnyRawCommand } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/core/protocol.ts';
+export { Client as IrcClient } from 'https://deno.land/x/irc@v0.15.0/mod.ts';
+export type { ClientOptions } from 'https://deno.land/x/irc@v0.15.0/mod.ts';
+export type { PrivmsgEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/privmsg.ts';
+export type { ClientError } from 'https://deno.land/x/irc@v0.15.0/core/errors.ts';
+export type { RegisterEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/register.ts';
+export type { NoticeEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/notice.ts';
+export type { NickEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/nick.ts';
+export type { JoinEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/join.ts';
+export type { PartEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/part.ts';
+export type { QuitEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/quit.ts';
+export type { RemoteAddr } from 'https://deno.land/x/irc@v0.15.0/core/client.ts';
+export type { NicklistEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/nicklist.ts';
+export type { CtcpActionEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/action.ts';
+export type { InviteEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/invite.ts';
+export type { AnyRawCommand } from 'https://deno.land/x/irc@v0.15.0/core/protocol.ts';
 // Harmony/Discord exports
 export {
   AllowedMentionType,
