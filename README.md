@@ -47,7 +47,7 @@ If run with no arguments, the application will search for a `config.json` within
 ### Running with Deno (developers)
 
 For _development_ work, discord-irc requires [Deno](https://deno.com), as it depends on
-[Harmony](https://harmony.mod.land). Please see the
+[Harmony](https://harmony.mod.land) and [deno-irc](https://deno.land/x/irc). Please see the
 [official install instructions](https://deno.land/manual/getting_started/installation) to install Deno for your
 platform.
 
