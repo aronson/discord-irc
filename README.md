@@ -32,8 +32,8 @@ To run manually from command line, or adjust the config file path:
 
 ```bash
 ## Linux users may need to mark as executable first
-chmod +x ./discord-irc-linux-x86_64
-./discord-irc-linux-x86_64 -c ./config.json
+chmod +x ./discord-irc-linux-x64
+./discord-irc-linux-x64 -c ./config.json
 
 ## Apple users may need to mark as executable and disable quarantine before running
 chmod +x ./discord-irc-apple-* && xattr -c ./discord-irc-apple-*
