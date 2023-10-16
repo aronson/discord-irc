@@ -19,7 +19,7 @@ function testIrcOptions(obj: any): string | null {
     return 'You cannot use retryDelay, use the sane defaults or read the documentation';
   }
   if ('floodProtection' in obj) {
-    return 'flood protection is enabled by default and cannot be disabled';
+    return 'flood protection is enabled through property floodDelay in milliseconds';
   }
   return null;
 }
@@ -80,18 +80,20 @@ async function run() {
     return;
   }
   const bots = helpers.createBots(config);
-  // Graceful shutdown of network clients
-  Deno.addSignalListener('SIGINT', async () => {
-    logger.warn('Received Ctrl+C! Disconnecting...');
+  const shutdown = async () => {
+    logger.warn('Received shutdown event! Disconnecting...');
     await helpers.forEachAsync(bots, async (bot) => {
       try {
         await bot.disconnect();
       } catch (e) {
-        bots[0].logger.error(e);
+        bot.logger.error(e);
       }
     });
     Deno.exit();
-  });
+  };
+  // Graceful shutdown of network clients
+  Deno.addSignalListener('SIGINT', shutdown);
+  Deno.addSignalListener('SIGTERM', shutdown);
   return bots;
 }
 
