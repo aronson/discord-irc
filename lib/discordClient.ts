@@ -1,11 +1,44 @@
 import Bot from './bot.ts';
 import { escapeMarkdown } from './helpers.ts';
-import { Client, event, GatewayIntents, Message } from './deps.ts';
+import { Command, CommandClient, CommandContext, event, GatewayIntents, Message } from './deps.ts';
 
-export class DiscordClient extends Client {
+class Names extends Command {
+  name = 'names';
+  private bot: Bot;
+
+  constructor(bot: Bot) {
+    super();
+    this.bot = bot;
+  }
+
+  async execute(ctx: CommandContext): Promise<void> {
+    const ircChannel = this.bot?.channelMapping?.discordIdToMapping.get(ctx.channel.id)?.ircChannel;
+    // return early if message was in channel we don't post to
+    if (!ircChannel) return;
+    const users = this.bot?.channelUsers[ircChannel];
+    if (users && users.length > 0) {
+      const ircNamesArr = new Array(...users);
+      await ctx.message.reply(
+        `Users in ${ircChannel}\n> ${
+          ircNamesArr
+            .map(escapeMarkdown)
+            .join(', ')
+        }`,
+      );
+    } else {
+      this.bot.logger.warn(
+        `No channelUsers found for ${ircChannel} when /names requested`,
+      );
+    }
+  }
+}
+
+export class DiscordClient extends CommandClient {
   private bot: Bot;
   constructor(bot: Bot) {
     super({
+      prefix: '/',
+      caseSensitive: false,
       intents: [
         GatewayIntents.GUILDS,
         GatewayIntents.GUILD_MEMBERS,
@@ -16,7 +49,8 @@ export class DiscordClient extends Client {
     });
     this.bot = bot;
     // Reconnect event has to be hooked manually due to naming conflict
-    this.on('reconnect', (shardId) => this.bot.logger.info(`Reconnected to Discord (shard ID ${shardId})`));
+    this.on('reconnect', (shardId) => this.bot?.logger.info(`Reconnected to Discord (shard ID ${shardId})`));
+    this.commands.add(new Names(bot));
   }
 
   @event()
@@ -32,37 +66,16 @@ export class DiscordClient extends Client {
 
   @event()
   async messageCreate(message: Message): Promise<void> {
-    // Show the IRC channel's /names list when asked for in Discord
-    if (message.content.toLowerCase() === '/names') {
-      if (!message.channel.isGuildText()) return;
-      // return early if message was in channel we don't post to
-      if (!(this.bot.channelMapping?.discordIdToMapping.get(message.channel.id))) {
-        return;
-      }
-      const ircChannel = this.bot.channelMapping?.discordIdToMapping.get(message.channel.id)?.ircChannel;
-      if (!ircChannel) return;
-      if (this.bot.channelUsers[ircChannel]) {
-        const ircNames = this.bot.channelUsers[ircChannel].values();
-        const ircNamesArr = new Array(...ircNames);
-        await this.bot.sendExactToDiscord(
-          ircChannel,
-          `Users in ${ircChannel}\n> ${
-            ircNamesArr
-              .map(escapeMarkdown) //TODO: Switch to discord.js escape markdown
-              .join(', ')
-          }`,
-        );
-      } else {
-        this.bot.logger.warn(
-          `No channelUsers found for ${ircChannel} when /names requested`,
-        );
-        // Pass the command through if channelUsers is empty
-        await this.bot.sendToIRC(message);
-      }
-    } else {
-      // Ignore this.bot messages and people leaving/joining
-      await this.bot.sendToIRC(message);
+    if (message.content.trim() === '/names') return;
+    if (!message.channel.isGuildText()) return;
+    // return early if message was in channel we don't post to
+    if (!(this.bot.channelMapping?.discordIdToMapping.get(message.channel.id))) {
+      return;
     }
+    const ircChannel = this.bot?.channelMapping?.discordIdToMapping.get(message.channel.id)?.ircChannel;
+    if (!ircChannel) return;
+    // Ignore this.bot? messages and people leaving/joining
+    await this.bot.sendToIRC(message);
   }
 
   @event()
