@@ -70,7 +70,7 @@ export class ChannelMapper {
   };
 
   private static parseChannelString(channelString: string): [string, string?] {
-    const regex = /^#(.*)(?:\s(.*))?$/;
+    const regex = /^(.*)(?:\s(.*))?$/;
     const match = regex.exec(channelString);
 
     if (match) {

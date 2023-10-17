@@ -194,6 +194,7 @@ First you need to create a Discord bot user, which you can do by following the i
     // {$ircChannel} (e.g. #irc)
     "webhookAvatarURL": "https://robohash.org/{$nickname}" // Default avatar to use for webhook messages
   },
+  "sendMessageUpdates": true, // Send edits to messages as follow up messages in IRC (off by default)
   "ircNickColor": true, // Gives usernames a color in IRC for better readability (on by default)
   // Not including this property will use all the default colors
   "ircNickColors": [

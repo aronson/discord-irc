@@ -26,7 +26,6 @@ function testIrcOptions(obj: any): string | null {
 
 async function run() {
   const opts = parseCLI(Deno.args, { alias: { c: 'config' } });
-  const logger = new Dlog('discord-irc');
 
   let configFilePath: string;
   if (opts.config) {
@@ -36,6 +35,7 @@ async function run() {
   }
   configFilePath = resolvePath(configFilePath);
 
+  const logger = new Dlog('discord-irc');
   if (!await helpers.exists(configFilePath)) {
     logger.error('Config file could not be found.');
     return;
@@ -81,7 +81,8 @@ async function run() {
   }
   const bots = helpers.createBots(config);
   const shutdown = async () => {
-    logger.warn('Received shutdown event! Disconnecting...');
+    const thisLogger = bots.length === 1 ? bots[0].logger : logger;
+    thisLogger.warn('Received shutdown event! Disconnecting...');
     await helpers.forEachAsync(bots, async (bot) => {
       try {
         await bot.disconnect();

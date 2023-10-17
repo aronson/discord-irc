@@ -1,5 +1,5 @@
-import { ClientOptions, Dlog, IrcClient } from './deps.ts';
-import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User } from './deps.ts';
+import { AllWebhookMessageOptions, ClientOptions, DiscordAPIError, Dlog, IrcClient } from './deps.ts';
+import { AllowedMentionType, Guild, Message, User } from './deps.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
 import { Dictionary, replaceAsync } from './helpers.ts';
@@ -21,15 +21,8 @@ import {
   createIrcReconnectingListener,
   createIrcRegisterListener,
 } from './ircListeners.ts';
-import {
-  createDiscordDebugListener,
-  createDiscordErrorListener,
-  createDiscordMessageListener,
-  createDiscordReadyListener,
-} from './discordListeners.ts';
-import { AllWebhookMessageOptions } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/src/structures/webhook.ts';
-import { DiscordAPIError } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
 import { ChannelMapper } from './channelMapping.ts';
+import { DiscordClient } from './discordClient.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
@@ -43,7 +36,7 @@ const patternMatch = /{\$(.+?)}/g;
  * @param {object} options - server, nickname, channelMapping, outgoingToken, incomingURL, partialMatch
  */
 export default class Bot {
-  discord: Client;
+  discord: DiscordClient;
   logger: Dlog;
   config: Config;
   channels: string[];
@@ -63,17 +56,8 @@ export default class Bot {
   verbose: boolean = (Deno.env.get('VERBOSE') ?? 'false').toLowerCase() === 'true';
   exiting = false;
   constructor(config: Config) {
-    this.discord = new Client({
-      intents: [
-        GatewayIntents.GUILDS,
-        GatewayIntents.GUILD_MEMBERS,
-        GatewayIntents.GUILD_MESSAGES,
-        GatewayIntents.MESSAGE_CONTENT,
-      ],
-      token: config.discordToken,
-    });
-
     this.config = config;
+    this.discord = new DiscordClient(this);
     // Make usernames lowercase for IRC ignore
     if (this.config.ignoreConfig) {
       this.config.ignoreConfig.ignorePingIrcUsers = this.config.ignoreConfig.ignorePingIrcUsers
@@ -142,18 +126,16 @@ export default class Bot {
   async connect() {
     this.debug && this.logger.debug('Connecting to IRC and Discord');
 
-    this.attachDiscordListeners();
     this.attachIrcListeners();
 
+    // IRC handlers wil
+    this.logger.info('Connecting to Discord');
     // Begin connection to remote servers
-    const ircPromise = this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
     await this.discord.connect();
+    await this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
 
     // Extract id and token from Webhook urls and connect.
     this.channelMapping = await ChannelMapper.CreateAsync(this.config, this, this.discord);
-
-    // Join IRC channels
-    await ircPromise;
   }
 
   async disconnect() {
@@ -161,15 +143,6 @@ export default class Bot {
     await this.ircClient.quit();
     this.ircClient.disconnect();
     await this.discord.destroy();
-  }
-
-  private attachDiscordListeners() {
-    this.discord.on('ready', createDiscordReadyListener(this));
-    this.discord.on('error', createDiscordErrorListener(this));
-    this.discord.on('messageCreate', createDiscordMessageListener(this));
-    if (this.debug) {
-      this.discord.on('debug', createDiscordDebugListener(this));
-    }
   }
 
   private attachIrcListeners() {
@@ -334,7 +307,7 @@ export default class Bot {
     }
   }
 
-  async sendToIRC(message: Message) {
+  async sendToIRC(message: Message, updated = false) {
     const { author } = message;
     // Ignore messages sent by the bot itself:
     if (author.id === this.discord.user?.id || this.channelMapping?.webhooks.find((w) => w.id === message.author.id)) {
@@ -351,101 +324,92 @@ export default class Bot {
     const channelName = `#${channel.name}`;
     const ircChannel = this.channelMapping?.discordIdToMapping.get(channel.id)?.ircChannel;
 
-    if (ircChannel) {
-      const fromGuild = message.guild;
-      if (!fromGuild) return;
-      let displayUsername = '';
-      let discordUsername = '';
-      const member = await fromGuild.members.get(author.id);
-      if (member) {
-        displayUsername = member.nick || author.displayName || author.username;
-        discordUsername = member.user.username;
-      } else {
-        // Author is a webhook
-        displayUsername = message.author.displayName;
-        discordUsername = message.author.username;
-      }
+    if (!ircChannel) return;
+    const fromGuild = message.guild;
+    if (!fromGuild) return;
+    let displayUsername = '';
+    let discordUsername = '';
+    const member = await fromGuild.members.get(author.id);
+    if (member) {
+      displayUsername = member.nick || author.displayName || author.username;
+      discordUsername = member.user.username;
+    } else {
+      // Author is a webhook
+      displayUsername = message.author.displayName;
+      discordUsername = message.author.username;
+    }
 
-      let text = await this.parseText(message);
+    let text = await this.parseText(message);
 
-      if (this.config.parallelPingFix) {
-        // Prevent users of both IRC and Discord from
-        // being mentioned in IRC when they talk in Discord.
-        displayUsername = `${
-          displayUsername.slice(
-            0,
-            1,
-          )
-        }\u200B${displayUsername.slice(1)}`;
-      }
-
-      if (this.config.ircNickColor) {
-        const displayColorIdx = (displayUsername.charCodeAt(0) + displayUsername.length) %
-            this.ircNickColors.length ?? 0;
-        const discordColorIdx = (discordUsername.charCodeAt(0) + discordUsername.length) %
-            this.ircNickColors.length ?? 0;
-        displayUsername = wrap(
-          this.ircNickColors[displayColorIdx],
-          displayUsername,
-        );
-        discordUsername = wrap(
-          this.ircNickColors[discordColorIdx],
-          discordUsername,
-        );
-      }
-
-      const patternMap = {
-        author: displayUsername,
-        nickname: displayUsername,
+    if (this.config.ircNickColor) {
+      const displayColorIdx = (displayUsername.charCodeAt(0) + displayUsername.length) %
+          this.ircNickColors.length ?? 0;
+      const discordColorIdx = (discordUsername.charCodeAt(0) + discordUsername.length) %
+          this.ircNickColors.length ?? 0;
+      displayUsername = wrap(
+        this.ircNickColors[displayColorIdx],
         displayUsername,
+      );
+      discordUsername = wrap(
+        this.ircNickColors[discordColorIdx],
         discordUsername,
-        text,
-        discordChannel: channelName,
-        ircChannel,
-        attachmentURL: '',
-      };
+      );
+    }
 
-      if (this.isCommandMessage(text)) {
-        //patternMap.side = 'Discord';
-        this.debug && this.logger.debug(
-          `Sending command message to IRC ${ircChannel} -- ${text}`,
+    const patternMap = {
+      author: displayUsername,
+      nickname: displayUsername,
+      displayUsername,
+      discordUsername,
+      text,
+      discordChannel: channelName,
+      ircChannel,
+      attachmentURL: '',
+    };
+
+    if (this.isCommandMessage(text) && !updated) {
+      //patternMap.side = 'Discord';
+      this.debug && this.logger.debug(
+        `Sending command message to IRC ${ircChannel} -- ${text}`,
+      );
+      // if (prelude) this.ircClient.say(ircChannel, prelude);
+      if (this.formatCommandPrelude) {
+        const prelude = Bot.substitutePattern(
+          this.formatCommandPrelude,
+          patternMap,
         );
-        // if (prelude) this.ircClient.say(ircChannel, prelude);
-        if (this.formatCommandPrelude) {
-          const prelude = Bot.substitutePattern(
-            this.formatCommandPrelude,
-            patternMap,
-          );
-          this.ircClient.privmsg(ircChannel, prelude);
+        this.ircClient.privmsg(ircChannel, prelude);
+      }
+      this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
+    } else {
+      if (text !== '') {
+        // Convert formatting
+        text = formatFromDiscordToIRC(text);
+        patternMap.text = text;
+
+        text = Bot.substitutePattern(this.formatIRCText, patternMap);
+        this.debug && this.logger.debug(
+          `Sending ${updated ? 'edit' : 'message'} to IRC ${ircChannel} -- ${text}`,
+        );
+        if (updated) {
+          text = `(edited) ${text}`;
         }
         this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
-      } else {
-        if (text !== '') {
-          // Convert formatting
-          text = formatFromDiscordToIRC(text);
-          patternMap.text = text;
+      }
 
-          text = Bot.substitutePattern(this.formatIRCText, patternMap);
+      if (message.attachments && message.attachments.length && !updated) {
+        message.attachments.forEach((a) => {
+          patternMap.attachmentURL = a.url;
+          const urlMessage = Bot.substitutePattern(
+            this.formatURLAttachment,
+            patternMap,
+          );
+
           this.debug && this.logger.debug(
-            `Sending message to IRC ${ircChannel} -- ${text}`,
+            `Sending attachment URL to IRC ${ircChannel} ${urlMessage}`,
           );
           this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
-        }
-
-        if (message.attachments && message.attachments.length) {
-          message.attachments.forEach((a) => {
-            patternMap.attachmentURL = a.url;
-            const urlMessage = Bot.substitutePattern(
-              this.formatURLAttachment,
-              patternMap,
-            );
-
-            this.debug && this.logger.debug(
-              `Sending attachment URL to IRC ${ircChannel} ${urlMessage}`,
-            );
-            this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
-          });
-        }
+        });
       }
     }
   }
