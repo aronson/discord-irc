@@ -7,9 +7,10 @@ type Hook = {
   client: Webhook;
 };
 
-type ChannelMapping = {
+export type ChannelMapping = {
   discordChannel: GuildTextChannel;
   ircChannel: string;
+  ircPassword?: string;
   webhook?: Hook;
 };
 
@@ -22,7 +23,8 @@ export class ChannelMapper {
   public static CreateAsync = async (config: Config, bot: Bot, discord: Client) => {
     const me = new ChannelMapper();
 
-    for (const [discordChannelNameOrId, ircChannelName] of Object.entries(config.channelMapping)) {
+    for (const [discordChannelNameOrId, ircChannelNameAndOrPassword] of Object.entries(config.channelMapping)) {
+      const [ircChannelName, ircChannelPassword] = this.parseChannelString(ircChannelNameAndOrPassword);
       const discordChannel = await this.findDiscordChannel(discordChannelNameOrId, discord);
       if (!discordChannel) {
         bot.logger.error(
@@ -52,6 +54,7 @@ export class ChannelMapper {
       const mapping: ChannelMapping = {
         discordChannel: discordChannel,
         ircChannel: ircChannelName,
+        ircPassword: ircChannelPassword,
       };
       if (webhookURL && client) {
         const [id, _] = webhookURL.split('/').slice(-2);
@@ -65,6 +68,19 @@ export class ChannelMapper {
     }
     return me;
   };
+
+  private static parseChannelString(channelString: string): [string, string?] {
+    const regex = /^#(.*)(?:\s(.*))?$/;
+    const match = regex.exec(channelString);
+
+    if (match) {
+      const channelName = match[1];
+      const channelPassword = match[2]; // This will be undefined if no password is present
+      return [channelName, channelPassword];
+    } else {
+      throw new Error(`Invalid IRC channel string: ${channelString}`);
+    }
+  }
 
   private static async findDiscordChannel(discordChannelName: string, discord: Client) {
     const discordChannel = await discord.channels.get(discordChannelName);

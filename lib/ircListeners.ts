@@ -1,3 +1,4 @@
+import { ChannelMapping } from './channelMapping.ts';
 import Bot from './bot.ts';
 import {
   AnyRawCommand,
@@ -14,7 +15,7 @@ import {
   RegisterEvent,
   RemoteAddr,
 } from './deps.ts';
-import { forEachAsync } from './helpers.ts';
+import { forEachAsync, tuple } from './helpers.ts';
 
 export function createIrcConnectingListener(bot: Bot) {
   return (addr: RemoteAddr) => {
@@ -52,6 +53,24 @@ export function createIrcRegisterListener(bot: Bot) {
         await bot.ircClient.send(command, ...reducedElements);
       },
     );
+    if (!bot.channelMapping) {
+      throw Error('Invalid internal state of channel mapper within bot initialization!');
+    }
+    // Inform user of channels to join
+    bot.channelMapping.ircNameToMapping.forEach((entry) => {
+      bot.logger.info(`Joining IRC channel ${entry.ircChannel}`);
+    });
+    // Convert channels that have passwords into the right form, otherwise use strings
+    const convertMapping = (m: ChannelMapping) => m.ircPassword ? tuple([m.ircChannel, m.ircPassword]) : m.ircChannel;
+    // The API surface requires us to split it up like this
+    const firstChannel = convertMapping(bot.channelMapping.mappings[0]);
+    const trailingChannels = bot.channelMapping.mappings.slice(1).map(convertMapping) ?? [];
+    // Actually join channels
+    if (trailingChannels.length > 0) {
+      bot.ircClient.join(firstChannel, ...trailingChannels);
+    } else {
+      bot.ircClient.join(firstChannel);
+    }
   };
 }
 

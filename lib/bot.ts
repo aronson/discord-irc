@@ -1,6 +1,5 @@
 import { ClientOptions, Dlog, IrcClient } from './deps.ts';
 import { AllowedMentionType, Client, GatewayIntents, Guild, Message, User } from './deps.ts';
-import { validateChannelMapping } from './validators.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
 import { Dictionary, replaceAsync } from './helpers.ts';
@@ -64,8 +63,6 @@ export default class Bot {
   verbose: boolean = (Deno.env.get('VERBOSE') ?? 'false').toLowerCase() === 'true';
   exiting = false;
   constructor(config: Config) {
-    validateChannelMapping(config.channelMapping);
-
     this.discord = new Client({
       intents: [
         GatewayIntents.GUILDS,
@@ -157,10 +154,6 @@ export default class Bot {
 
     // Join IRC channels
     await ircPromise;
-    this.channelMapping.ircNameToMapping.forEach((entry) => {
-      this.logger.info(`Joining IRC channel ${entry.ircChannel}`);
-      this.ircClient.join(entry.ircChannel);
-    });
   }
 
   async disconnect() {
