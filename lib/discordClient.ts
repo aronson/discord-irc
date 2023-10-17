@@ -26,9 +26,8 @@ export class DiscordClient extends Client {
 
   @event()
   error(error: Error): void {
-    this.bot.logger.error(
-      `Received error event from Discord\n${JSON.stringify(error, null, 2)}`,
-    );
+    this.bot.logger.error('Received error event from Discord');
+    console.log(error);
   }
 
   @event()
@@ -77,10 +76,10 @@ export class DiscordClient extends Client {
     if (!this.bot.verbose && containsIgnoredMessage(message)) {
       return;
     }
-    this.bot.debug &&
-      this.bot.logger.debug(
-        `Received debug event from Discord: ${JSON.stringify(message, null, 2)}`,
-      );
+    if (!this.bot.debug) return;
+    this.bot.logger.debug(
+      `Received debug event from Discord: ${JSON.stringify(message, null, 2)}`,
+    );
   }
 }
 
