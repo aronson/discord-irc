@@ -124,17 +124,17 @@ export default class Bot {
   }
 
   async connect() {
-    this.debug && this.logger.debug('Connecting to IRC and Discord');
+    this.debug && this.logger.debug('Initializing...');
 
     this.attachIrcListeners();
 
-    // Begin connection to remote servers
-    await this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
     this.logger.info('Connecting to Discord');
     await this.discord.connect();
 
     // Extract id and token from Webhook urls and connect.
     this.channelMapping = await ChannelMapper.CreateAsync(this.config, this, this.discord);
+
+    await this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
   }
 
   async disconnect() {
