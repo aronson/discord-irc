@@ -67,7 +67,7 @@ async function run() {
       config = result.data as Config[];
     }
   } else {
-    const ircOptionsTestResult = testIrcOptions(result.data.ircOptions);
+    const ircOptionsTestResult = result.data.ircOptions ? testIrcOptions(result.data.ircOptions) : null;
     if (ircOptionsTestResult !== null) {
       logger.error('Error parsing ircOptions:');
       console.log(ircOptionsTestResult);
