@@ -347,10 +347,10 @@ export default class Bot {
         const membersMap = await this.pkApi.getMembers({ system: system.id });
         if (membersMap) {
           const members = Array.from(membersMap.values());
-          const tags = members.flatMap(m => m.proxy_tags ?? []);
+          const tags = members.flatMap((m) => m.proxy_tags ?? []);
           for (const tag of tags) {
             if (!(tag.prefix || tag.suffix)) continue;
-            const regex = new RegExp(`^${tag.prefix ?? ""}.*${tag.suffix ?? ""}$`);
+            const regex = new RegExp(`^${tag.prefix ?? ''}.*${tag.suffix ?? ''}$`);
             if (regex.test(message.content)) {
               return;
             }

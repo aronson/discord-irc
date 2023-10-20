@@ -2,7 +2,7 @@ name: Publish Docker Image and Native Binaries
 
 on:
   push:
-    branches: main
+    branches: "*"
     paths:
       - .github/workflows/build.yaml
       - discord-irc.ts
