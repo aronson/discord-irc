@@ -1,4 +1,4 @@
-import { AllWebhookMessageOptions, ClientOptions, DiscordAPIError, Dlog, IrcClient } from './deps.ts';
+import { AllWebhookMessageOptions, ClientOptions, DiscordAPIError, Dlog, IrcClient, PKAPI } from './deps.ts';
 import { AllowedMentionType, Guild, Message, User } from './deps.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
@@ -50,6 +50,7 @@ export default class Bot {
   channelUsers: Dictionary<Array<string>>;
   channelMapping: ChannelMapper | null = null;
   ircClient: IrcClient;
+  pkApi?: PKAPI;
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
   debug: boolean = (Deno.env.get('DEBUG') ?? Deno.env.get('VERBOSE') ?? 'false')
     .toLowerCase() === 'true';
@@ -58,6 +59,7 @@ export default class Bot {
   constructor(config: Config) {
     this.config = config;
     this.discord = new DiscordClient(this);
+    this.pkApi = config.pluralKit ? new PKAPI() : undefined;
     // Make usernames lowercase for IRC ignore
     if (this.config.ignoreConfig) {
       this.config.ignoreConfig.ignorePingIrcUsers = this.config.ignoreConfig.ignorePingIrcUsers
@@ -336,6 +338,27 @@ export default class Bot {
       // Author is a webhook
       displayUsername = message.author.displayName;
       discordUsername = message.author.username;
+    }
+
+    // Check for PluralKit proxying
+    if (this.pkApi && !author.bot) {
+      try {
+        const system = await this.pkApi.getSystem({ system: author.id });
+        const membersMap = await this.pkApi.getMembers({ system: system.id });
+        if (membersMap) {
+          const members = Array.from(membersMap.values());
+          const tags = members.flatMap(m => m.proxy_tags ?? []);
+          for (const tag of tags) {
+            if (!(tag.prefix || tag.suffix)) continue;
+            const regex = new RegExp(`^${tag.prefix ?? ""}.*${tag.suffix ?? ""}$`);
+            if (regex.test(message.content)) {
+              return;
+            }
+          }
+        }
+      } catch (_) {
+        // An exception means the message was not in PK format
+      }
     }
 
     let text = await this.parseText(message);

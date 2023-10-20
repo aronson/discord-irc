@@ -74,7 +74,6 @@ export class DiscordClient extends CommandClient {
     }
     const ircChannel = this.bot?.channelMapping?.discordIdToMapping.get(message.channel.id)?.ircChannel;
     if (!ircChannel) return;
-    // Ignore this.bot? messages and people leaving/joining
     await this.bot.sendToIRC(message);
   }
 

@@ -37,3 +37,5 @@ export { parse as parseJSONC } from 'https://deno.land/std@0.203.0/jsonc/mod.ts'
 // Logging
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
 export { Dlog };
+// PluralKit support
+export { PKAPI } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
