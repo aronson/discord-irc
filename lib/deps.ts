@@ -39,3 +39,5 @@ import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
 export { Dlog };
 // PluralKit support
 export { PKAPI } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
+// Queue
+export { Queue } from 'https://deno.land/x/queue@1.2.0/mod.ts';

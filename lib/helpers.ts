@@ -4,6 +4,10 @@ import Bot from './bot.ts';
 
 export const tuple = <T extends unknown[]>(args: [...T]): T => args;
 
+export function delay(ms = 0) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function exists(filename: string) {
   try {
     await Deno.stat(filename);
