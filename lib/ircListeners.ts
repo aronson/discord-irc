@@ -1,10 +1,13 @@
-import { ChannelMapping } from './channelMapping.ts';
+import { ChannelMapper, ChannelMapping } from './channelMapping.ts';
 import Bot from './bot.ts';
 import {
   AnyRawCommand,
   ClientError,
+  ClientOptions,
   CtcpActionEvent,
+  Dlog,
   InviteEvent,
+  IrcClient,
   JoinEvent,
   NickEvent,
   NicklistEvent,
@@ -15,268 +18,263 @@ import {
   RegisterEvent,
   RemoteAddr,
 } from './deps.ts';
-import { forEachAsync, tuple } from './helpers.ts';
+import { Dictionary, forEachAsync, tuple } from './helpers.ts';
 
-export function createIrcConnectingListener(bot: Bot) {
-  return (addr: RemoteAddr) => {
-    bot.logger.info(
+export class CustomIrcClient extends IrcClient {
+  channelUsers: Dictionary<string[]>;
+  channelMapping: ChannelMapper;
+  sendToDiscord: (author: string, ircChannel: string, text: string) => Promise<void>;
+  sendExactToDiscord: (channel: string, text: string) => Promise<void>;
+  exiting: () => boolean;
+  botNick: string;
+  debug: boolean;
+  logger: Dlog;
+  ircStatusNotices?: boolean;
+  autoSendCommands?: string[][];
+  announceSelfJoin?: boolean;
+  constructor(clientOptions: ClientOptions, bot: Bot) {
+    if (!bot.channelMapping) throw new Error('Cannot init IRC client without channel mapper');
+    super(clientOptions);
+    this.botNick = clientOptions.nick;
+    this.channelUsers = bot.channelUsers;
+    this.logger = bot.logger;
+    this.debug = bot.debug;
+    this.autoSendCommands = bot.config.autoSendCommands;
+    this.channelMapping = bot.channelMapping;
+    this.sendToDiscord = bot.sendToDiscord.bind(bot);
+    this.sendExactToDiscord = bot.sendExactToDiscord.bind(bot);
+    this.ircStatusNotices = bot.config.ircStatusNotices;
+    this.announceSelfJoin = bot.config.announceSelfJoin;
+    this.exiting = () => bot.exiting;
+    this.on('register', this.onRegister.bind(this));
+    this.on('error', this.onError.bind(this));
+    this.on('privmsg:channel', this.onPrivMessage.bind(this));
+    this.on('notice', this.onNotice.bind(this));
+    this.on('nick', this.onNick.bind(this));
+    this.on('join', this.onJoin.bind(this));
+    this.on('part', this.onPart.bind(this));
+    this.on('quit', this.onQuit.bind(this));
+    this.on('nicklist', this.onNicklist.bind(this));
+    this.on('ctcp_action', this.onAction.bind(this));
+    this.on('invite', this.onInvite.bind(this));
+    this.on('connecting', this.onConnecting.bind(this));
+    this.on('connected', this.onConnected.bind(this));
+    this.on('disconnected', this.onDisconnected.bind(this));
+    this.on('reconnecting', this.onReconnecting.bind(this));
+  }
+  onConnecting(addr: RemoteAddr) {
+    this.logger.info(
       `Connecting to IRC server ${addr.hostname}:${addr.port} ${
         addr.tls ? 'with TLS' : 'without TLS' +
           '...'
       }`,
     );
-  };
-}
-
-export function createIrcConnectedListener(bot: Bot) {
-  return (addr: RemoteAddr) => {
-    bot.logger.done(`Connected to IRC server ${addr.hostname}:${addr.port}`);
-  };
-}
-
-export function createIrcRegisterListener(bot: Bot) {
-  return (message: RegisterEvent) => {
-    bot.logger.done('Registered to IRC server.');
-    bot.debug && bot.logger.debug(
+  }
+  onConnected(addr: RemoteAddr) {
+    this.logger.done(`Connected to IRC server ${addr.hostname}:${addr.port}`);
+  }
+  onRegister(message: RegisterEvent) {
+    this.logger.done('Registered to IRC server.');
+    this.debug && this.logger.debug(
       `Registered event:\n${JSON.stringify(message, null, 2)}`,
     );
     forEachAsync(
-      bot.config.autoSendCommands ?? [],
+      this.autoSendCommands ?? [],
       async (element) => {
         const command: AnyRawCommand = element[0] as AnyRawCommand;
         const reducedElements = element.slice(1);
         if (!command) {
-          bot.logger.warn(`Auto-send command ${element[0]} not a valid IRC command! Skipping...`);
+          this.logger.warn(`Auto-send command ${element[0]} not a valid IRC command! Skipping...`);
           return;
         }
-        bot.logger.debug(`Sending auto-send command ${element}`);
-        await bot.ircClient.send(command, ...reducedElements);
+        this.debug && this.logger.debug(`Sending auto-send command ${element}`);
+        await this.send(command, ...reducedElements);
       },
     );
-    if (!bot.channelMapping) {
-      throw Error('Invalid internal state of channel mapper within bot initialization!');
-    }
     // Inform user of channels to join
-    bot.channelMapping.ircNameToMapping.forEach((entry) => {
-      bot.logger.info(`Joining IRC channel ${entry.ircChannel}`);
+    this.channelMapping.ircNameToMapping.forEach((entry) => {
+      this.logger.info(`Joining IRC channel ${entry.ircChannel}`);
     });
     // Convert channels that have passwords into the right form, otherwise use strings
     const convertMapping = (m: ChannelMapping) => m.ircPassword ? tuple([m.ircChannel, m.ircPassword]) : m.ircChannel;
     // The API surface requires us to split it up like this
-    const firstChannel = convertMapping(bot.channelMapping.mappings[0]);
-    const trailingChannels = bot.channelMapping.mappings.slice(1).map(convertMapping) ?? [];
+    const firstChannel = convertMapping(this.channelMapping.mappings[0]);
+    const trailingChannels = this.channelMapping.mappings.slice(1).map(convertMapping) ?? [];
     // Actually join channels
     if (trailingChannels.length > 0) {
-      bot.ircClient.join(firstChannel, ...trailingChannels);
+      this.join(firstChannel, ...trailingChannels);
     } else {
-      bot.ircClient.join(firstChannel);
+      this.join(firstChannel);
     }
-  };
-}
-
-export function createIrcErrorListener(bot: Bot) {
-  return (error: ClientError) => {
-    bot.logger.error(
+  }
+  onError(error: ClientError) {
+    this.logger.error(
       `Received error event from IRC\n${JSON.stringify(error, null, 2)}`,
     );
-  };
-}
-
-export function createIrcPrivMessageListener(bot: Bot) {
-  return async (event: PrivmsgEvent) => {
-    await bot.sendToDiscord(
+  }
+  async onPrivMessage(event: PrivmsgEvent) {
+    await this.sendToDiscord(
       event.source?.name ?? '',
       event.params.target,
       event.params.text,
     );
-  };
-}
-
-export function createIrcNoticeListener(bot: Bot) {
-  return (event: NoticeEvent) => {
-    bot.debug &&
-      bot.logger.debug(
+  }
+  onNotice(event: NoticeEvent) {
+    this.debug &&
+      this.logger.debug(
         `Received notice:\n${JSON.stringify(event.params.text)}`,
       );
-  };
-}
-
-export function createIrcNickListener(bot: Bot) {
-  return (event: NickEvent) => {
-    bot.channelMapping?.discordIdToMapping.forEach((channelMapping) => {
+  }
+  onNick(event: NickEvent) {
+    this.channelMapping?.discordIdToMapping.forEach((channelMapping) => {
       const channelName = channelMapping.ircChannel;
       const channel = channelName.toLowerCase();
       const newNick = event.params.nick;
       const oldNick = event.source?.name ?? '';
-      if (bot.channelUsers[channelName]) {
-        let users = bot.channelUsers[channel];
+      if (this.channelUsers[channelName]) {
+        let users = this.channelUsers[channel];
         const index = users.indexOf(oldNick);
         if (index !== -1) {
           users = users.splice(index, 1);
           users.push(newNick);
-          if (!bot.config.ircStatusNotices) return;
-          bot.sendExactToDiscord(
+          if (!this.ircStatusNotices) return;
+          this.sendExactToDiscord(
             channel,
             `*${oldNick}* is now known as ${newNick} in the connected IRC server`,
           );
         }
       } else {
-        bot.logger.warn(
+        this.logger.warn(
           `No channelUsers found for ${channel} when ${oldNick} changed.`,
         );
       }
     });
-  };
-}
-
-export function createIrcJoinListener(bot: Bot) {
-  return async (event: JoinEvent) => {
+  }
+  async onJoin(event: JoinEvent) {
     const channelName = event.params.channel;
     const nick = event.source?.name ?? '';
-    if (nick === bot.config.ircOptions?.nick ?? bot.config.nickname) {
-      bot.logger.done(`Joined IRC channel ${channelName}`);
+    if (nick === this.botNick) {
+      this.logger.done(`Joined IRC channel ${channelName}`);
     } else {
-      bot.debug && bot.logger.debug(`Received join: ${channelName} -- ${nick}`);
+      this.debug && this.logger.debug(`Received join: ${channelName} -- ${nick}`);
     }
     const channel = channelName.toLowerCase();
-    if (nick === bot.config.nickname && !bot.config.announceSelfJoin) {
+    if (nick === this.botNick && !this.announceSelfJoin) {
       return;
     }
     // self-join is announced before names (which includes own nick)
     // so don't add nick to channelUsers
     if (
-      nick !== bot.config.ircOptions?.nick &&
-      nick !== bot.config.nickname &&
-      bot.channelUsers[channel].indexOf(nick) === -1
+      nick !== this.botNick &&
+      this.channelUsers[channel].indexOf(nick) === -1
     ) {
-      bot.channelUsers[channel].push(nick);
+      this.channelUsers[channel].push(nick);
     }
-    if (!bot.config.ircStatusNotices) return;
-    await bot.sendExactToDiscord(
+    if (!this.ircStatusNotices) return;
+    await this.sendExactToDiscord(
       channel,
       `*${nick}* has joined the connected IRC channel`,
     );
-  };
-}
-
-export function createIrcPartListener(bot: Bot) {
-  return async (event: PartEvent) => {
+  }
+  async onPart(event: PartEvent) {
     const channelName = event.params.channel;
     const nick = event.source?.name ?? '';
     const reason = event.params.comment;
-    bot.debug && bot.logger.debug(
+    this.debug && this.logger.debug(
       `Received part: ${channelName} -- ${nick} -- ${reason}`,
     );
     const channel = channelName.toLowerCase();
     // remove list of users when no longer in channel (as it will become out of date)
-    if (nick === bot.config.nickname) {
-      bot.debug && bot.logger.debug(
+    if (nick === this.botNick) {
+      this.debug && this.logger.debug(
         `Deleting channelUsers as bot parted: ${channel}`,
       );
-      delete bot.channelUsers[channel];
+      delete this.channelUsers[channel];
       return;
     }
-    const users = bot.channelUsers[channel];
+    const users = this.channelUsers[channel];
     if (users) {
       const index = users.indexOf(nick);
-      bot.channelUsers[channel] = users.splice(index, 1);
+      this.channelUsers[channel] = users.splice(index, 1);
     } else {
-      bot.logger.warn(
+      this.logger.warn(
         `No channelUsers found for ${channel} when ${nick} parted.`,
       );
     }
-    if (!bot.config.ircStatusNotices) return;
-    await bot.sendExactToDiscord(
+    if (!this.ircStatusNotices) return;
+    await this.sendExactToDiscord(
       channel,
       `*${nick}* has left the connected IRC channel (${reason})`,
     );
-  };
-}
-
-export function createIrcQuitListener(bot: Bot) {
-  return (event: QuitEvent) => {
+  }
+  onQuit(event: QuitEvent) {
     const nick = event.source?.name ?? '';
     const reason = event.params.comment ?? '';
-    bot.debug && bot.logger.debug(
+    this.debug && this.logger.debug(
       `Received quit: ${nick}`,
     );
-    bot.channelMapping?.ircNameToMapping.forEach((channelMapping) => {
+    this.channelMapping?.ircNameToMapping.forEach((channelMapping) => {
       const channelName = channelMapping.ircChannel;
       const channel = channelName.toLowerCase();
-      const users = bot.channelUsers[channel];
+      const users = this.channelUsers[channel];
       if (!users) {
-        bot.logger.warn(
+        this.logger.warn(
           `No channelUsers found for ${channel} when ${nick} quit, ignoring.`,
         );
         return;
       }
       const index = users.indexOf(nick);
       if (index === -1) return;
-      else bot.channelUsers[channel] = users.splice(index, 1);
+      else this.channelUsers[channel] = users.splice(index, 1);
       if (
-        !bot.config.ircStatusNotices || nick === bot.config.nickname
+        !this.ircStatusNotices || nick === this.botNick
       ) return;
-      bot.sendExactToDiscord(
+      this.sendExactToDiscord(
         channel,
         `*${nick}* has quit from the connected IRC server (${reason})`,
       );
     });
-  };
-}
-
-export function createIrcNicklistListener(bot: Bot) {
-  return (event: NicklistEvent) => {
+  }
+  onNicklist(event: NicklistEvent) {
     const channelName = event.params.channel;
     const nicks = event.params.nicklist;
-    bot.debug && bot.logger.debug(
+    this.debug && this.logger.debug(
       `Received names: ${channelName}\n${JSON.stringify(nicks, null, 2)}`,
     );
     const channel = channelName.toLowerCase();
-    bot.channelUsers[channel] = nicks.map((n) => n.nick);
-  };
-}
-
-export function createIrcActionListener(bot: Bot) {
-  return async (event: CtcpActionEvent) => {
-    await bot.sendToDiscord(
+    this.channelUsers[channel] = nicks.map((n) => n.nick);
+  }
+  async onAction(event: CtcpActionEvent) {
+    await this.sendToDiscord(
       event.source?.name ?? '',
       event.params.target,
       `_${event.params.text}_`,
     );
-  };
-}
-
-export function createIrcInviteListener(bot: Bot) {
-  return (event: InviteEvent) => {
+  }
+  onInvite(event: InviteEvent) {
     const channel = event.params.channel;
     const from = event.params.nick;
-    bot.debug && bot.logger.debug(`Received invite: ${channel} -- ${from}`);
-    if (!bot.channelMapping?.ircNameToMapping.get(channel)) {
-      bot.debug && bot.logger.debug(
+    this.debug && this.logger.debug(`Received invite: ${channel} -- ${from}`);
+    if (!this.channelMapping?.ircNameToMapping.get(channel)) {
+      this.debug && this.logger.debug(
         `Channel not found in config, not joining: ${channel}`,
       );
     } else {
-      bot.ircClient.join(channel);
-      bot.debug && bot.logger.debug(`Joining channel: ${channel}`);
+      this.join(channel);
+      this.debug && this.logger.debug(`Joining channel: ${channel}`);
     }
-  };
-}
-
-export function createIrcDisconnectedListener(bot: Bot) {
-  return (addr: RemoteAddr) => {
+  }
+  onDisconnected(addr: RemoteAddr) {
     const message = `Disconnected from server ${addr.hostname}:${addr.port}`;
-    if (bot.exiting) {
-      bot.logger.done(message + '.');
+    if (this.exiting()) {
+      this.logger.done(message + '.');
     } else {
-      bot.logger.error(message + '!');
+      this.logger.error(message + '!');
     }
-  };
-}
-
-export function createIrcReconnectingListener(bot: Bot) {
-  return (addr: RemoteAddr) => {
-    bot.logger.info(
+  }
+  onReconnecting(addr: RemoteAddr) {
+    this.logger.info(
       `Attempting to reconnect to server ${addr.hostname}:${addr.port}...`,
     );
-  };
+  }
 }

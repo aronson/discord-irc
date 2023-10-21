@@ -1,29 +1,13 @@
-import { AllWebhookMessageOptions, ClientOptions, DiscordAPIError, Dlog, IrcClient, PKAPI, Queue } from './deps.ts';
+import { AllWebhookMessageOptions, ClientOptions, DiscordAPIError, Dlog, PKAPI, Queue } from './deps.ts';
 import { AllowedMentionType, Guild, Message, User } from './deps.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
 import { delay, Dictionary, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
-import {
-  createIrcActionListener,
-  createIrcConnectedListener,
-  createIrcConnectingListener,
-  createIrcDisconnectedListener,
-  createIrcErrorListener,
-  createIrcInviteListener,
-  createIrcJoinListener,
-  createIrcNickListener,
-  createIrcNicklistListener,
-  createIrcNoticeListener,
-  createIrcPartListener,
-  createIrcPrivMessageListener,
-  createIrcQuitListener,
-  createIrcReconnectingListener,
-  createIrcRegisterListener,
-} from './ircListeners.ts';
 import { ChannelMapper } from './channelMapping.ts';
 import { DiscordClient } from './discordClient.ts';
 import { APIError } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
+import { CustomIrcClient } from './ircListeners.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
@@ -50,7 +34,7 @@ export default class Bot {
   formatWebhookAvatarURL: string;
   channelUsers: Dictionary<Array<string>>;
   channelMapping: ChannelMapper | null = null;
-  ircClient: IrcClient;
+  ircClient?: CustomIrcClient;
   pkApi?: PKAPI;
   pkQueue?: Queue;
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
@@ -114,26 +98,10 @@ export default class Bot {
     if (config.ircNickColors) {
       this.ircNickColors = config.ircNickColors;
     }
-
-    const ircOptions: ClientOptions = {
-      nick: config.nickname,
-      username: config.nickname,
-      realname: config.nickname,
-      password: config.ircOptions?.password,
-      reconnect: {
-        attempts: Number.MAX_SAFE_INTEGER,
-        delay: 3,
-      },
-      ...config.ircOptions,
-    };
-
-    this.ircClient = new IrcClient(ircOptions);
   }
 
   async connect() {
     this.debug && this.logger.debug('Initializing...');
-
-    this.attachIrcListeners();
 
     this.logger.info('Connecting to Discord');
     await this.discord.connect();
@@ -141,32 +109,27 @@ export default class Bot {
     // Extract id and token from Webhook urls and connect.
     this.channelMapping = await ChannelMapper.CreateAsync(this.config, this, this.discord);
 
+    const ircOptions: ClientOptions = {
+      nick: this.config.nickname,
+      username: this.config.nickname,
+      realname: this.config.nickname,
+      password: this.config.ircOptions?.password,
+      reconnect: {
+        attempts: Number.MAX_SAFE_INTEGER,
+        delay: 3,
+      },
+      ...this.config.ircOptions,
+    };
+
+    this.ircClient = new CustomIrcClient(ircOptions, this);
     await this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
   }
 
   async disconnect() {
     this.exiting = true;
-    await this.ircClient.quit();
-    this.ircClient.disconnect();
+    await this.ircClient?.quit();
+    this.ircClient?.disconnect();
     await this.discord.destroy();
-  }
-
-  private attachIrcListeners() {
-    this.ircClient.on('register', createIrcRegisterListener(this));
-    this.ircClient.on('error', createIrcErrorListener(this));
-    this.ircClient.on('privmsg:channel', createIrcPrivMessageListener(this));
-    this.ircClient.on('notice', createIrcNoticeListener(this));
-    this.ircClient.on('nick', createIrcNickListener(this));
-    this.ircClient.on('join', createIrcJoinListener(this));
-    this.ircClient.on('part', createIrcPartListener(this));
-    this.ircClient.on('quit', createIrcQuitListener(this));
-    this.ircClient.on('nicklist', createIrcNicklistListener(this));
-    this.ircClient.on('ctcp_action', createIrcActionListener(this));
-    this.ircClient.on('invite', createIrcInviteListener(this));
-    this.ircClient.on('connecting', createIrcConnectingListener(this));
-    this.ircClient.on('connected', createIrcConnectedListener(this));
-    this.ircClient.on('disconnected', createIrcDisconnectedListener(this));
-    this.ircClient.on('reconnecting', createIrcReconnectingListener(this));
   }
 
   async getDiscordUserByString(userString: string, guild: Guild | undefined) {
@@ -309,7 +272,7 @@ export default class Bot {
     const messageChunks = accumulatedChunks.map((arr) => arr.join(' '));
 
     for (const chunk of messageChunks) {
-      this.ircClient.privmsg(ircChannel, chunk.trim());
+      this.ircClient?.privmsg(ircChannel, chunk.trim());
     }
   }
 
@@ -420,7 +383,7 @@ export default class Bot {
           this.formatCommandPrelude,
           patternMap,
         );
-        this.ircClient.privmsg(ircChannel, prelude);
+        this.ircClient?.privmsg(ircChannel, prelude);
       }
       this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
     } else {
