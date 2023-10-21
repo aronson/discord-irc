@@ -450,7 +450,7 @@ export default class Bot {
           this.debug && this.logger.debug(
             `Sending attachment URL to IRC ${ircChannel} ${urlMessage}`,
           );
-          this.sendIRCMessageWithSplitAndQueue(ircChannel, text);
+          this.sendIRCMessageWithSplitAndQueue(ircChannel, urlMessage);
         });
       }
     }
