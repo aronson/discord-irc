@@ -19,7 +19,14 @@ import {
   RemoteAddr,
 } from './deps.ts';
 import { Dictionary, forEachAsync, tuple } from './helpers.ts';
+import { Reflect } from './deps.ts';
 
+// deno-lint-ignore no-explicit-any
+type Constructor<T = unknown> = new (...args: any[]) => T;
+
+function decorator<T>(_: Constructor<T>): void {}
+
+@decorator
 export class CustomIrcClient extends IrcClient {
   channelUsers: Dictionary<string[]>;
   channelMapping: ChannelMapper;
@@ -46,22 +53,20 @@ export class CustomIrcClient extends IrcClient {
     this.ircStatusNotices = bot.config.ircStatusNotices;
     this.announceSelfJoin = bot.config.announceSelfJoin;
     this.exiting = () => bot.exiting;
-    this.on('register', this.onRegister.bind(this));
-    this.on('error', this.onError.bind(this));
-    this.on('privmsg:channel', this.onPrivMessage.bind(this));
-    this.on('notice', this.onNotice.bind(this));
-    this.on('nick', this.onNick.bind(this));
-    this.on('join', this.onJoin.bind(this));
-    this.on('part', this.onPart.bind(this));
-    this.on('quit', this.onQuit.bind(this));
-    this.on('nicklist', this.onNicklist.bind(this));
-    this.on('ctcp_action', this.onAction.bind(this));
-    this.on('invite', this.onInvite.bind(this));
-    this.on('connecting', this.onConnecting.bind(this));
-    this.on('connected', this.onConnected.bind(this));
-    this.on('disconnected', this.onDisconnected.bind(this));
-    this.on('reconnecting', this.onReconnecting.bind(this));
+    this.bindEvents();
   }
+  // Bind event handlers to base client through Reflect metadata and bind each handler to this instance
+  bindEvents() {
+    for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
+      const event = Reflect.getMetadata('event', this, key);
+      if (event) {
+        // deno-lint-ignore ban-types
+        const handler = this[key as keyof typeof this] as Function;
+        this.on(event, handler.bind(this));
+      }
+    }
+  }
+  @Reflect.metadata('event', 'connecting')
   onConnecting(addr: RemoteAddr) {
     this.logger.info(
       `Connecting to IRC server ${addr.hostname}:${addr.port} ${
@@ -70,9 +75,11 @@ export class CustomIrcClient extends IrcClient {
       }`,
     );
   }
+  @Reflect.metadata('event', 'connected')
   onConnected(addr: RemoteAddr) {
     this.logger.done(`Connected to IRC server ${addr.hostname}:${addr.port}`);
   }
+  @Reflect.metadata('event', 'register')
   onRegister(message: RegisterEvent) {
     this.logger.done('Registered to IRC server.');
     this.debug && this.logger.debug(
@@ -107,11 +114,13 @@ export class CustomIrcClient extends IrcClient {
       this.join(firstChannel);
     }
   }
+  @Reflect.metadata('event', 'error')
   onError(error: ClientError) {
     this.logger.error(
       `Received error event from IRC\n${JSON.stringify(error, null, 2)}`,
     );
   }
+  @Reflect.metadata('event', 'privmsg:channel')
   async onPrivMessage(event: PrivmsgEvent) {
     await this.sendToDiscord(
       event.source?.name ?? '',
@@ -119,12 +128,14 @@ export class CustomIrcClient extends IrcClient {
       event.params.text,
     );
   }
+  @Reflect.metadata('event', 'notice')
   onNotice(event: NoticeEvent) {
     this.debug &&
       this.logger.debug(
         `Received notice:\n${JSON.stringify(event.params.text)}`,
       );
   }
+  @Reflect.metadata('event', 'nick')
   onNick(event: NickEvent) {
     this.channelMapping?.discordIdToMapping.forEach((channelMapping) => {
       const channelName = channelMapping.ircChannel;
@@ -150,6 +161,7 @@ export class CustomIrcClient extends IrcClient {
       }
     });
   }
+  @Reflect.metadata('event', 'join')
   async onJoin(event: JoinEvent) {
     const channelName = event.params.channel;
     const nick = event.source?.name ?? '';
@@ -176,6 +188,7 @@ export class CustomIrcClient extends IrcClient {
       `*${nick}* has joined the connected IRC channel`,
     );
   }
+  @Reflect.metadata('event', 'part')
   async onPart(event: PartEvent) {
     const channelName = event.params.channel;
     const nick = event.source?.name ?? '';
@@ -207,6 +220,7 @@ export class CustomIrcClient extends IrcClient {
       `*${nick}* has left the connected IRC channel (${reason})`,
     );
   }
+  @Reflect.metadata('event', 'quit')
   onQuit(event: QuitEvent) {
     const nick = event.source?.name ?? '';
     const reason = event.params.comment ?? '';
@@ -235,6 +249,7 @@ export class CustomIrcClient extends IrcClient {
       );
     });
   }
+  @Reflect.metadata('event', 'nicklist')
   onNicklist(event: NicklistEvent) {
     const channelName = event.params.channel;
     const nicks = event.params.nicklist;
@@ -244,6 +259,7 @@ export class CustomIrcClient extends IrcClient {
     const channel = channelName.toLowerCase();
     this.channelUsers[channel] = nicks.map((n) => n.nick);
   }
+  @Reflect.metadata('event', 'ctcp_action')
   async onAction(event: CtcpActionEvent) {
     await this.sendToDiscord(
       event.source?.name ?? '',
@@ -251,6 +267,7 @@ export class CustomIrcClient extends IrcClient {
       `_${event.params.text}_`,
     );
   }
+  @Reflect.metadata('event', 'invite')
   onInvite(event: InviteEvent) {
     const channel = event.params.channel;
     const from = event.params.nick;
@@ -264,6 +281,7 @@ export class CustomIrcClient extends IrcClient {
       this.debug && this.logger.debug(`Joining channel: ${channel}`);
     }
   }
+  @Reflect.metadata('event', 'disconnected')
   onDisconnected(addr: RemoteAddr) {
     const message = `Disconnected from server ${addr.hostname}:${addr.port}`;
     if (this.exiting()) {
@@ -272,6 +290,7 @@ export class CustomIrcClient extends IrcClient {
       this.logger.error(message + '!');
     }
   }
+  @Reflect.metadata('event', 'reconnecting')
   onReconnecting(addr: RemoteAddr) {
     this.logger.info(
       `Attempting to reconnect to server ${addr.hostname}:${addr.port}...`,

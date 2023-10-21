@@ -41,3 +41,5 @@ export { Dlog };
 export { PKAPI } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
 // Queue
 export { Queue } from 'https://deno.land/x/queue@1.2.0/mod.ts';
+// Event handler
+export { Reflect } from 'https://deno.land/x/reflect_metadata@v0.1.12/mod.ts';
