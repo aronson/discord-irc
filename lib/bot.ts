@@ -1,4 +1,14 @@
-import { AllWebhookMessageOptions, ClientOptions, DiscordAPIError, Dlog, PKAPI, Queue } from './deps.ts';
+import {
+  AllWebhookMessageOptions,
+  APIError,
+  ClientOptions,
+  DiscordAPIError,
+  Dlog,
+  Member,
+  PKAPI,
+  Queue,
+  TTL,
+} from './deps.ts';
 import { AllowedMentionType, Guild, Message, User } from './deps.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
@@ -6,15 +16,14 @@ import { delay, Dictionary, replaceAsync } from './helpers.ts';
 import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
 import { ChannelMapper } from './channelMapping.ts';
 import { DiscordClient } from './discordClient.ts';
-import { APIError } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
 import { CustomIrcClient } from './ircClient.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
 const USERNAME_MAX_LENGTH = 32;
 
-// const REQUIRED_FIELDS = ['server', 'nickname', 'channelMapping', 'discordToken'];
 const patternMatch = /{\$(.+?)}/g;
+const MILLISECONDS_PER_SECOND = 1000;
 
 /**
  * An IRC bot, works as a middleman for all communication
@@ -37,6 +46,7 @@ export default class Bot {
   ircClient?: CustomIrcClient;
   pkApi?: PKAPI;
   pkQueue?: Queue;
+  pkCache?: TTL<Member[]>;
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
   debug: boolean = (Deno.env.get('DEBUG') ?? Deno.env.get('VERBOSE') ?? 'false')
     .toLowerCase() === 'true';
@@ -48,6 +58,10 @@ export default class Bot {
     if (config.pluralKit) {
       this.pkApi = new PKAPI();
       this.pkQueue = new Queue();
+      const fiveMinutesInSeconds = 300;
+      if (config.pkCacheSeconds !== 0) {
+        this.pkCache = new TTL<Member[]>((config.pkCacheSeconds ?? fiveMinutesInSeconds) * MILLISECONDS_PER_SECOND);
+      }
     }
     // Make usernames lowercase for IRC ignore
     if (this.config.ignoreConfig) {
@@ -276,23 +290,31 @@ export default class Bot {
     }
   }
 
+  filterMessageTags(members: Member[], message: Message) {
+    const tags = members.flatMap((m) => m.proxy_tags ?? []);
+    for (const tag of tags) {
+      if (!(tag.prefix || tag.suffix)) continue;
+      const regex = new RegExp(`^${tag.prefix ?? ''}.*${tag.suffix ?? ''}$`);
+      if (regex.test(message.content)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   async testForPluralKitMessage(author: User, message: Message): Promise<boolean> {
     if (!this.pkApi) return false;
     try {
-      const system = await this.pkApi.getSystem({ system: author.id });
-      const membersMap = await this.pkApi.getMembers({ system: system.id });
-      if (membersMap) {
+      const cachedMembers = this.pkCache?.get(author.id);
+      if (cachedMembers) {
+        return this.filterMessageTags(cachedMembers, message);
+      } else {
+        const system = await this.pkApi.getSystem({ system: author.id });
+        const membersMap = await this.pkApi.getMembers({ system: system.id });
         const members = Array.from(membersMap.values());
-        const tags = members.flatMap((m) => m.proxy_tags ?? []);
-        for (const tag of tags) {
-          if (!(tag.prefix || tag.suffix)) continue;
-          const regex = new RegExp(`^${tag.prefix ?? ''}.*${tag.suffix ?? ''}$`);
-          if (regex.test(message.content)) {
-            return true;
-          }
-        }
+        this.pkCache?.set(author.id, members);
+        return this.filterMessageTags(members, message);
       }
-      return false;
       // An exception means the user was not in PK or we are rate limited usually
     } catch (e) {
       if (e instanceof APIError && e.message === '429: too many requests') {
