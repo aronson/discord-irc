@@ -7,7 +7,7 @@ import { Config, GameLogConfig, IgnoreConfig } from './config.ts';
 import { ChannelMapper } from './channelMapping.ts';
 import { DiscordClient } from './discordClient.ts';
 import { APIError } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
-import { CustomIrcClient } from './ircListeners.ts';
+import { CustomIrcClient } from './ircClient.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
