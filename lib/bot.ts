@@ -4,6 +4,7 @@ import {
   ClientOptions,
   DiscordAPIError,
   Dlog,
+  escapeStringRegexp,
   Member,
   PKAPI,
   Queue,
@@ -294,7 +295,9 @@ export default class Bot {
     const tags = members.flatMap((m) => m.proxy_tags ?? []);
     for (const tag of tags) {
       if (!(tag.prefix || tag.suffix)) continue;
-      const regex = new RegExp(`^${tag.prefix ?? ''}.*${tag.suffix ?? ''}$`);
+      const prefix = escapeStringRegexp(tag.prefix ?? '');
+      const suffix = escapeStringRegexp(tag.suffix ?? '');
+      const regex = new RegExp(`^${prefix}.*${suffix}$`);
       if (regex.test(message.content)) {
         return true;
       }

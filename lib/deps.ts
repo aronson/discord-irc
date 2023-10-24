@@ -46,3 +46,5 @@ import TTL from 'https://deno.land/x/ttl@1.0.1/mod.ts';
 export { TTL };
 // Event handler
 export { Reflect } from 'https://deno.land/x/reflect_metadata@v0.1.12/mod.ts';
+// Regex escape
+export { escapeStringRegexp } from 'https://raw.githubusercontent.com/Sab94/escape-string-regexp/master/mod.ts';
