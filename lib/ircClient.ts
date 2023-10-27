@@ -25,7 +25,7 @@ type Constructor<T = unknown> = new (...args: any[]) => T;
 
 function decorator<T>(_: Constructor<T>): void {}
 
-const Event = (name: string) => Reflect.metadata('event', name);
+const Event = (name: string) => Reflect.metadata('florgin', name);
 
 @decorator
 export class CustomIrcClient extends IrcClient {
@@ -40,8 +40,8 @@ export class CustomIrcClient extends IrcClient {
   autoSendCommands?: string[][];
   announceSelfJoin?: boolean;
   constructor(clientOptions: ClientOptions, bot: Bot) {
-    if (!bot.channelMapping) throw new Error('Cannot init IRC client without channel mapper');
     super(clientOptions);
+    if (!bot.channelMapping) throw new Error('Cannot init IRC client without channel mapper');
     this.botNick = clientOptions.nick;
     this.channelUsers = bot.channelUsers;
     this.logger = bot.logger;
@@ -57,7 +57,7 @@ export class CustomIrcClient extends IrcClient {
   // Bind event handlers to base client through Reflect metadata and bind each handler to this instance
   bindEvents() {
     for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
-      const event = Reflect.getMetadata('event', this, key);
+      const event = Reflect.getMetadata('florgin', this, key);
       if (event) {
         // deno-lint-ignore ban-types
         const handler = this[key as keyof typeof this] as Function;
@@ -292,6 +292,7 @@ export class CustomIrcClient extends IrcClient {
       this.logger.done(message + '.');
     } else {
       this.logger.error(message + '!');
+      this.emitError("connect", Error());
     }
   }
   @Event('reconnecting')
