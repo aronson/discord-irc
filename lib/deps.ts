@@ -24,7 +24,9 @@ export {
   GatewayIntents,
   Guild,
   GuildTextChannel,
+  Member as GuildMember,
   Message,
+  Role,
   User,
   Webhook,
 } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
@@ -38,7 +40,11 @@ export { parse as parseJSONC } from 'https://deno.land/std@0.203.0/jsonc/mod.ts'
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
 export { Dlog };
 // PluralKit support
-export { APIError, Member, PKAPI } from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
+export {
+  APIError,
+  Member as PKMember,
+  PKAPI,
+} from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
 // Queue
 export { Queue } from 'https://deno.land/x/queue@1.2.0/mod.ts';
 // Time to Live cache

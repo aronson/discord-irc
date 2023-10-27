@@ -1,21 +1,30 @@
-import Bot from './bot.ts';
-import { escapeMarkdown } from './helpers.ts';
-import { Command, CommandClient, CommandContext, event, GatewayIntents, Message } from './deps.ts';
+import { ChannelMapper } from './channelMapping.ts';
+import { Dictionary, escapeMarkdown } from './helpers.ts';
+import { Command, CommandClient, CommandContext, Dlog, event, GatewayIntents, Message } from './deps.ts';
+import { DEBUG, VERBOSE } from './env.ts';
 
 class Names extends Command {
   name = 'names';
-  private bot: Bot;
+  private channelMapping?: ChannelMapper;
+  private channelUsers: Dictionary<string[]>;
+  private logger: Dlog;
 
-  constructor(bot: Bot) {
+  constructor(channelUsers: Dictionary<Array<string>>, logger: Dlog) {
     super();
-    this.bot = bot;
+    this.channelUsers = channelUsers;
+    this.logger = logger;
+    this.execute = this.execute.bind(this);
+  }
+
+  bindMap(map: ChannelMapper) {
+    this.channelMapping = map;
   }
 
   async execute(ctx: CommandContext): Promise<void> {
-    const ircChannel = this.bot?.channelMapping?.discordIdToMapping.get(ctx.channel.id)?.ircChannel;
+    const ircChannel = this.channelMapping?.discordIdToMapping.get(ctx.channel.id)?.ircChannel;
     // return early if message was in channel we don't post to
     if (!ircChannel) return;
-    const users = this.bot?.channelUsers[ircChannel];
+    const users = this.channelUsers[ircChannel];
     if (users && users.length > 0) {
       const ircNamesArr = new Array(...users);
       await ctx.message.reply(
@@ -26,7 +35,7 @@ class Names extends Command {
         }`,
       );
     } else {
-      this.bot.logger.warn(
+      this.logger.warn(
         `No channelUsers found for ${ircChannel} when /names requested`,
       );
     }
@@ -34,8 +43,15 @@ class Names extends Command {
 }
 
 export class DiscordClient extends CommandClient {
-  private bot: Bot;
-  constructor(bot: Bot) {
+  private logger: Dlog;
+  private sendMessageUpdates: boolean;
+  private names: Names;
+  constructor(
+    discordToken: string,
+    channelUsers: Dictionary<string[]>,
+    logger: Dlog,
+    sendMessageUpdates: boolean,
+  ) {
     super({
       prefix: '/',
       caseSensitive: false,
@@ -45,57 +61,49 @@ export class DiscordClient extends CommandClient {
         GatewayIntents.GUILD_MESSAGES,
         GatewayIntents.MESSAGE_CONTENT,
       ],
-      token: bot.config.discordToken,
+      token: discordToken,
     });
-    this.bot = bot;
+    this.logger = logger;
+    this.sendMessageUpdates = sendMessageUpdates;
     // Reconnect event has to be hooked manually due to naming conflict
-    this.on('reconnect', (shardId) => this.bot?.logger.info(`Reconnected to Discord (shard ID ${shardId})`));
-    this.commands.add(new Names(bot));
+    this.on('reconnect', (shardId) => logger.info(`Reconnected to Discord (shard ID ${shardId})`));
+    this.names = new Names(channelUsers, logger);
+    this.commands.add(this.names);
+  }
+
+  bindNotify(notify: (m: Message, b: boolean) => Promise<void>, mapper: ChannelMapper) {
+    this.on('messageCreate', async (ev) => await notify(ev, false));
+    this.on('messageUpdate', async (ev) => {
+      if (!this.sendMessageUpdates) return;
+      await notify(ev, true);
+    });
+    this.names.bindMap(mapper);
   }
 
   @event()
   ready(): void {
-    this.bot.logger.done('Connected to Discord');
+    this.logger.done('Connected to Discord');
   }
 
   @event()
   error(error: Error): void {
-    this.bot.logger.error('Received error event from Discord');
+    this.logger.error('Received error event from Discord');
     console.log(error);
   }
 
   @event()
-  async messageCreate(message: Message): Promise<void> {
-    if (message.content.trim() === '/names') return;
-    if (!message.channel.isGuildText()) return;
-    // return early if message was in channel we don't post to
-    if (!(this.bot.channelMapping?.discordIdToMapping.get(message.channel.id))) {
-      return;
-    }
-    const ircChannel = this.bot?.channelMapping?.discordIdToMapping.get(message.channel.id)?.ircChannel;
-    if (!ircChannel) return;
-    await this.bot.sendToIRC(message);
-  }
-
-  @event()
-  async messageUpdate(_: Message, message: Message): Promise<void> {
-    if (!this.bot.config.sendMessageUpdates) return;
-    await this.bot.sendToIRC(message, true);
-  }
-
-  @event()
   debug(message: string): void {
-    if (!this.bot.verbose && containsIgnoredMessage(message)) {
+    if (!VERBOSE && containsIgnoredMessage(message)) {
       return;
     }
-    if (!this.bot.debug) return;
-    this.bot.logger.debug(
+    if (!DEBUG) return;
+    this.logger.debug(
       `Received debug event from Discord: ${JSON.stringify(message, null, 2)}`,
     );
   }
 }
 
-const ignoreMessages = [/Heartbeat ack/, /heartbeat sent/];
+const ignoreMessages = [/Heartbeat ack/, /heartbeat sent/, /Shard/];
 
 function containsIgnoredMessage(str: string): boolean {
   return ignoreMessages.some((regex) => regex.test(str));

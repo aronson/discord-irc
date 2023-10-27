@@ -1,10 +1,10 @@
+import { Mediator } from './mediator.ts';
 import { ChannelMapper, ChannelMapping } from './channelMapping.ts';
 import Bot from './bot.ts';
 import {
   AnyRawCommand,
   ClientError,
   ClientOptions,
-  CtcpActionEvent,
   Dlog,
   InviteEvent,
   IrcClient,
@@ -13,7 +13,6 @@ import {
   NicklistEvent,
   NoticeEvent,
   PartEvent,
-  PrivmsgEvent,
   QuitEvent,
   RegisterEvent,
   RemoteAddr,
@@ -32,8 +31,7 @@ const Event = (name: string) => Reflect.metadata('event', name);
 export class CustomIrcClient extends IrcClient {
   channelUsers: Dictionary<string[]>;
   channelMapping: ChannelMapper;
-  sendToDiscord: (author: string, ircChannel: string, text: string) => Promise<void>;
-  sendExactToDiscord: (channel: string, text: string) => Promise<void>;
+  sendExactToDiscord: (channel: string, message: string) => Promise<void>;
   exiting: () => boolean;
   botNick: string;
   debug: boolean;
@@ -50,12 +48,11 @@ export class CustomIrcClient extends IrcClient {
     this.debug = bot.debug;
     this.autoSendCommands = bot.config.autoSendCommands;
     this.channelMapping = bot.channelMapping;
-    this.sendToDiscord = bot.sendToDiscord.bind(bot);
-    this.sendExactToDiscord = bot.sendExactToDiscord.bind(bot);
     this.ircStatusNotices = bot.config.ircStatusNotices;
     this.announceSelfJoin = bot.config.announceSelfJoin;
     this.exiting = () => bot.exiting;
     this.bindEvents();
+    this.sendExactToDiscord = async () => {};
   }
   // Bind event handlers to base client through Reflect metadata and bind each handler to this instance
   bindEvents() {
@@ -122,13 +119,26 @@ export class CustomIrcClient extends IrcClient {
       `Received error event from IRC\n${JSON.stringify(error, null, 2)}`,
     );
   }
-  @Event('privmsg:channel')
-  async onPrivMessage(event: PrivmsgEvent) {
-    await this.sendToDiscord(
-      event.source?.name ?? '',
-      event.params.target,
-      event.params.text,
-    );
+  bindNotify(
+    fn: (author: string, channel: string, message: string, raw: boolean) => Promise<void>,
+    mediator: Mediator,
+  ) {
+    const raw = false;
+    this.on('privmsg:channel', async (event) =>
+      await fn(
+        event.source?.name ?? '',
+        event.params.target,
+        event.params.text,
+        raw,
+      ));
+    this.on('ctcp_action', async (event) =>
+      await fn(
+        event.source?.name ?? '',
+        event.params.target,
+        `_${event.params.text}_`,
+        raw,
+      ));
+    this.sendExactToDiscord = mediator.sendExactToDiscord;
   }
   @Event('notice')
   onNotice(event: NoticeEvent) {
@@ -260,14 +270,6 @@ export class CustomIrcClient extends IrcClient {
     );
     const channel = channelName.toLowerCase();
     this.channelUsers[channel] = nicks.map((n) => n.nick);
-  }
-  @Event('ctcp_action')
-  async onAction(event: CtcpActionEvent) {
-    await this.sendToDiscord(
-      event.source?.name ?? '',
-      event.params.target,
-      `_${event.params.text}_`,
-    );
   }
   @Event('invite')
   onInvite(event: InviteEvent) {
