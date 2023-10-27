@@ -11,6 +11,7 @@ import {
   Dlog,
   escapeStringRegexp,
   Guild,
+  GuildMember,
   Message,
   Message as DiscordMessage,
   PKAPI,
@@ -92,6 +93,7 @@ export class Mediator {
 
     this.gameLogConfig = config.gameLogConfig;
     this.ignoreConfig = config.ignoreConfig;
+    this.ignoreUsers = config.ignoreUsers;
 
     // "{$keyName}" => "variableValue"
     // displayUsername: nickname with wrapped colors
@@ -129,6 +131,17 @@ export class Mediator {
   }
 
   bindMethods() {
+    this.filterMessageTags = this.filterMessageTags.bind(this);
+    this.testForPluralKitMessage = this.testForPluralKitMessage.bind(this);
+    this.replaceUserMentions = this.replaceUserMentions.bind(this);
+    this.replaceNewlines = this.replaceNewlines.bind(this);
+    this.replaceChannelMentions = this.replaceChannelMentions.bind(this);
+    this.replaceRoleMentions = this.replaceRoleMentions.bind(this);
+    this.replaceEmotes = this.replaceEmotes.bind(this);
+    this.parseText = this.parseText.bind(this);
+    this.ignoredDiscordUser = this.ignoredDiscordUser.bind(this);
+    this.sendIRCMessageWithSplitAndQueue = this.sendIRCMessageWithSplitAndQueue.bind(this);
+    this.sendToIRC = this.sendToIRC.bind(this);
     this.notifyToIrc = this.notifyToIrc.bind(this);
     this.shouldIgnoreByPattern = this.shouldIgnoreByPattern.bind(this);
     this.ignoredIrcUser = this.ignoredIrcUser.bind(this);
@@ -248,14 +261,18 @@ export class Mediator {
     );
   }
 
-  ignoredDiscordUser(discordUser: User) {
+  async ignoredDiscordUser(discordUser: GuildMember) {
     const ignoredName = this.ignoreUsers?.discord?.some(
-      (i) => i.toLowerCase() === discordUser.username.toLowerCase(),
+      (i) => i.toLowerCase() === discordUser.user.username.toLowerCase(),
     );
     const ignoredId = this.ignoreUsers?.discordIds?.some(
       (i) => i === discordUser.id,
     );
-    return ignoredName || ignoredId || false;
+    const roles = await discordUser.roles.array();
+    const ignoredRole = this.ignoreUsers?.roles?.some(
+      (r) => roles.some((role) => role.name === r || role.id === r),
+    );
+    return ignoredName || ignoredId || ignoredRole || false;
   }
 
   sendIRCMessageWithSplitAndQueue(ircChannel: string, input: string) {
@@ -297,11 +314,6 @@ export class Mediator {
       return;
     }
 
-    // Do not send to IRC if this user is on the ignore list.
-    if (this.ignoredDiscordUser(author)) {
-      return;
-    }
-
     const channel = message.channel;
     if (!channel.isGuildText()) return;
     const channelName = `#${channel.name}`;
@@ -313,7 +325,11 @@ export class Mediator {
     let displayUsername = '';
     let discordUsername = '';
     const member = await fromGuild.members.get(author.id);
+    // Do not send to IRC if this user is on the ignore list.
     if (member) {
+      if (await this.ignoredDiscordUser(member)) {
+        return;
+      }
       displayUsername = member.nick || author.displayName || author.username;
       discordUsername = member.user.username;
     } else {
