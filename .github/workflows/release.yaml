@@ -78,31 +78,3 @@ jobs:
           file: discord-irc-*
           file_glob: true
 
-  build-freebsd:
-    name: Build FreeBSD Binary and Add it to the Release
-    runs-on: macos-12
-    needs: create-release
-    steps:
-      - uses: actions/checkout@v3
-      - name: Checkout FreeBSD ports repository
-        run: |
-          git clone --depth=1 https://git.FreeBSD.org/ports.git
-          tar -cf ports.tar ports/
-          rm -rf ports/
-      - name: Compile AMD64 binary for FreeBSD
-        uses: cross-platform-actions/action@v0.15.0
-        with:
-          operating_system: freebsd
-          version: "13.2"
-          run: |
-            sudo tar -xf ports.tar -C /usr
-            sudo pkg install -y www/deno
-            deno task prepare
-            find . ! -name 'discord-irc' -delete
-            mv discord-irc discord-irc-freebsd-x64
-
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          file: discord-irc-*
-          file_glob: true
