@@ -448,7 +448,7 @@ export class Mediator {
   }
 
   findDiscordChannel(ircChannel: string) {
-    return this.channelMapping.ircNameToMapping.get(ircChannel.toLowerCase())?.discordChannel;
+    return this.channelMapping.ircNameToMapping.get(ircChannel)?.discordChannel;
   }
 
   isCommandMessage(message: string) {
@@ -518,7 +518,7 @@ export class Mediator {
   }
 
   findWebhook(ircChannel: string) {
-    return this.channelMapping.ircNameToMapping.get(ircChannel.toLowerCase())?.webhook;
+    return this.channelMapping.ircNameToMapping.get(ircChannel)?.webhook;
   }
 
   /* Sends a message to Discord exactly as it appears */

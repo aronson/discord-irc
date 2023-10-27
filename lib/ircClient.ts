@@ -151,7 +151,7 @@ export class CustomIrcClient extends IrcClient {
   onNick(event: NickEvent) {
     this.channelMapping?.discordIdToMapping.forEach((channelMapping) => {
       const channelName = channelMapping.ircChannel;
-      const channel = channelName.toLowerCase();
+      const channel = channelName;
       const newNick = event.params.nick;
       const oldNick = event.source?.name ?? '';
       if (this.channelUsers[channelName]) {
@@ -182,7 +182,7 @@ export class CustomIrcClient extends IrcClient {
     } else {
       this.debug && this.logger.debug(`Received join: ${channelName} -- ${nick}`);
     }
-    const channel = channelName.toLowerCase();
+    const channel = channelName;
     if (nick === this.botNick && !this.announceSelfJoin) {
       return;
     }
@@ -241,7 +241,7 @@ export class CustomIrcClient extends IrcClient {
     );
     this.channelMapping?.ircNameToMapping.forEach((channelMapping) => {
       const channelName = channelMapping.ircChannel;
-      const channel = channelName.toLowerCase();
+      const channel = channelName;
       const users = this.channelUsers[channel];
       if (!users) {
         this.logger.warn(
@@ -268,7 +268,7 @@ export class CustomIrcClient extends IrcClient {
     this.debug && this.logger.debug(
       `Received names: ${channelName}\n${JSON.stringify(nicks, null, 2)}`,
     );
-    const channel = channelName.toLowerCase();
+    const channel = channelName;
     this.channelUsers[channel] = nicks.map((n) => n.nick);
   }
   @Event('invite')
