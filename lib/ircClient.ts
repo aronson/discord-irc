@@ -286,13 +286,13 @@ export class CustomIrcClient extends IrcClient {
     }
   }
   @Event('disconnected')
-  onDisconnected(addr: RemoteAddr) {
+  async onDisconnected(addr: RemoteAddr) {
     const message = `Disconnected from server ${addr.hostname}:${addr.port}`;
     if (this.exiting()) {
       this.logger.done(message + '.');
     } else {
       this.logger.error(message + '!');
-      this.emitError('connect', Error());
+      await this.connect(this.state.remoteAddr.hostname, this.state.remoteAddr.port, this.state.remoteAddr.tls);
     }
   }
   @Event('reconnecting')
