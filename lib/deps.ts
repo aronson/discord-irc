@@ -40,11 +40,7 @@ export { parse as parseJSONC } from 'https://deno.land/std@0.203.0/jsonc/mod.ts'
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
 export { Dlog };
 // PluralKit support
-export {
-  APIError,
-  Member as PKMember,
-  PKAPI,
-} from 'https://raw.githubusercontent.com/aronson/pkapi.ts/main/lib/mod.ts';
+export { APIError, Member as PKMember, PKAPI } from 'https://deno.land/x/pkapi@v6.0.1/lib/mod.ts';
 // Queue
 export { Queue } from 'https://deno.land/x/queue@1.2.0/mod.ts';
 // Time to Live cache
@@ -53,4 +49,4 @@ export { TTL };
 // Event handler
 export { Reflect } from 'https://deno.land/x/reflect_metadata@v0.1.12/mod.ts';
 // Regex escape
-export { escapeStringRegexp } from 'https://raw.githubusercontent.com/Sab94/escape-string-regexp/master/mod.ts';
+export { escapeStringRegexp } from 'https://deno.land/x/escape_string_regexp@v0.0.1/mod.ts';
