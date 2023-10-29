@@ -1,6 +1,6 @@
 import Bot from './bot.ts';
 import { Config } from './config.ts';
-import { CommandClient, GuildTextChannel, Webhook } from './deps.ts';
+import { Client, GuildTextChannel, Webhook } from './deps.ts';
 
 type Hook = {
   id: string;
@@ -20,7 +20,7 @@ export class ChannelMapper {
   discordIdToMapping: Map<string, ChannelMapping> = new Map<string, ChannelMapping>();
   ircNameToMapping: Map<string, ChannelMapping> = new Map<string, ChannelMapping>();
 
-  public static CreateAsync = async (config: Config, bot: Bot, discord: CommandClient) => {
+  public static CreateAsync = async (config: Config, bot: Bot, discord: Client) => {
     const me = new ChannelMapper();
 
     for (const [discordChannelNameOrId, ircChannelNameAndOrPassword] of Object.entries(config.channelMapping)) {
@@ -82,7 +82,7 @@ export class ChannelMapper {
     }
   }
 
-  private static async findDiscordChannel(discordChannelName: string, discord: CommandClient) {
+  private static async findDiscordChannel(discordChannelName: string, discord: Client) {
     const discordChannel = await discord.channels.get(discordChannelName);
 
     if (!discordChannel && discordChannelName.startsWith('#')) {

@@ -17,6 +17,7 @@ export type { AnyRawCommand } from 'https://deno.land/x/irc@v0.15.0/core/protoco
 // Harmony/Discord exports
 export {
   AllowedMentionType,
+  Client,
   Command,
   CommandClient,
   DiscordAPIError,
@@ -24,13 +25,20 @@ export {
   GatewayIntents,
   Guild,
   GuildTextChannel,
+  Interaction,
+  InteractionResponseType,
   Member as GuildMember,
   Message,
   Role,
+  slash,
+  SlashCommandOptionType,
   User,
   Webhook,
 } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
-export type { CommandContext } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
+export type {
+  CommandContext,
+  SlashCommandPartial,
+} from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
 export type { AllWebhookMessageOptions } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/src/structures/webhook.ts';
 // std exports
 export { resolve as resolvePath } from 'https://deno.land/std@0.203.0/path/mod.ts';
