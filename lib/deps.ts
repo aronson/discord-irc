@@ -24,6 +24,7 @@ export {
   event,
   GatewayIntents,
   Guild,
+  GuildChannel,
   GuildTextChannel,
   Interaction,
   InteractionResponseType,

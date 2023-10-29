@@ -19,9 +19,9 @@ import {
 import { Dictionary, replaceAsync } from './helpers.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
-import { GuildChannelCache } from './cache/channelCache.ts';
-import { GuildMemberCache } from './cache/guildMemberCache.ts';
-import { MemberRoleCache } from './cache/memberRoleCache.ts';
+import { AllGuildChannelsCache, GuildChannelCache } from './cache/channelCache.ts';
+import { AllGuildMembersCache, GuildMemberCache } from './cache/memberCache.ts';
+import { AllGuildRoleCache, GuildRoleCache, MemberRoleCache } from './cache/roleCache.ts';
 import { PKMemberCache } from './cache/pkMemberCache.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
@@ -57,6 +57,10 @@ export class Mediator {
   private GuildMemberCache: GuildMemberCache;
   private MemberRoleCache: MemberRoleCache;
   private GuildChannelCache: GuildChannelCache;
+  private AllGuildMembersCache: AllGuildMembersCache;
+  private AllGuildRolesCache: AllGuildRoleCache;
+  private GuildRoleCache: GuildRoleCache;
+  private AllGuildChannelsCache: AllGuildChannelsCache;
   constructor(
     discord: DiscordClient,
     irc: IrcClient,
@@ -73,9 +77,13 @@ export class Mediator {
     this.irc = irc;
     this.logger = logger;
     this.channelUsers = channelUsers;
+    this.AllGuildMembersCache = new AllGuildMembersCache(guild);
     this.GuildMemberCache = new GuildMemberCache(guild);
     this.MemberRoleCache = new MemberRoleCache(this.GuildMemberCache);
     this.GuildChannelCache = new GuildChannelCache(guild);
+    this.GuildRoleCache = new GuildRoleCache(guild);
+    this.AllGuildRolesCache = new AllGuildRoleCache(guild);
+    this.AllGuildChannelsCache = new AllGuildChannelsCache(guild);
     this.pkCache = new PKMemberCache(config);
     // Make usernames lowercase for IRC ignore
     if (this.config.ignoreConfig) {
@@ -201,7 +209,6 @@ export class Mediator {
       text,
       /<#(\d+)>/g,
       async (_, channelId: string) => {
-        // TODO: Cache channels
         const channel = await this.GuildChannelCache.get(channelId);
         if (channel) return `#${channel.name}`;
         return '#deleted-channel';
@@ -211,11 +218,10 @@ export class Mediator {
 
   async replaceRoleMentions(
     text: string,
-    message: Message,
+    _message: Message,
   ): Promise<string> {
     return await replaceAsync(text, /<@&(\d+)>/g, async (_, roleId) => {
-      // TODO: Cache roles
-      const role = await message.guild?.roles.fetch(roleId);
+      const role = await this.GuildRoleCache.get(roleId);
       if (role) return `@${role.name}`;
       return '@deleted-role';
     });
@@ -559,20 +565,16 @@ export class Mediator {
           this.formatCommandPrelude,
           patternMap,
         );
-        if (discordChannel.isGuildText()) {
-          discordChannel.send(prelude);
-        }
+        discordChannel.send(prelude);
       }
-      if (discordChannel.isGuildText()) {
-        discordChannel.send(text);
-      }
+      discordChannel.send(text);
       return;
     }
 
     // TODO: Cache roles and channels
-    const roles = await this.guild.roles.fetchAll();
+    const roles = await this.AllGuildRolesCache.get();
     if (!roles) return;
-    const channels = await this.guild.channels.array();
+    const channels = await this.AllGuildChannelsCache.get();
     if (!channels) return;
 
     const processMentionables = async (input: string) => {
@@ -681,11 +683,9 @@ export class Mediator {
     // Add bold formatting:
     // Use custom formatting from config / default formatting with bold author
     const withAuthor = Mediator.substitutePattern(this.formatDiscord, patternMap);
-    if (discordChannel.isGuildText()) {
-      this.debug && this.logger.debug(
-        `Sending message to Discord ${withAuthor} ${ircChannel} -> #${discordChannel.name}`,
-      );
-      discordChannel.send(withAuthor);
-    }
+    this.debug && this.logger.debug(
+      `Sending message to Discord ${withAuthor} ${ircChannel} -> #${discordChannel.name}`,
+    );
+    discordChannel.send(withAuthor);
   }
 }

@@ -1,11 +1,11 @@
 import { Config } from '../config.ts';
 import { APIError, PKAPI, PKMember, Queue } from '../deps.ts';
 import { delay } from '../helpers.ts';
-import { AsyncCache } from './asyncCache.ts';
+import { AsyncKeyStoreCache } from './asyncCache.ts';
 
-export class PKMemberCache extends AsyncCache<PKMember[]> {
-  pkApi?: PKAPI;
-  pkQueue?: Queue;
+export class PKMemberCache extends AsyncKeyStoreCache<PKMember[]> {
+  private pkApi?: PKAPI;
+  private pkQueue?: Queue;
   constructor(config: Config) {
     super((config.pkCacheSeconds ?? 5 * 60) * 1000);
     if (config.pluralKit) {
