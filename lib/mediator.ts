@@ -184,7 +184,7 @@ export class Mediator {
     } catch (e) {
       // Happens when a webhook is mentioned similar to a user, prevent 404 from crashing bot
       if (e instanceof DiscordAPIError) {
-        this.logger.error(`Discord API error in user mention lookup, falling back to no mention:\n${e}`);
+        this.logger.error(`Discord API error in user mention lookup, likely user was webhook:\n${e}`);
       } else {
         this.logger.error(e);
       }
@@ -302,7 +302,17 @@ export class Mediator {
     if (!fromGuild) return;
     let displayUsername = '';
     let discordUsername = '';
-    const member = await this.GuildMemberCache.get(author.id);
+    let member: GuildMember | undefined = undefined;
+    try {
+      member = await this.GuildMemberCache.get(author.id);
+    } catch (e) {
+      // Happens when a webhook is mentioned similar to a user, prevent 404 from crashing bot
+      if (e instanceof DiscordAPIError) {
+        this.debug && this.logger.debug(`Discord API error in user lookup, likely user was webhook:\n${e}`);
+      } else {
+        this.logger.error(e);
+      }
+    }
     // Do not send to IRC if this user is on the ignore list.
     if (member) {
       if (await this.ignoredDiscordUser(member)) {
