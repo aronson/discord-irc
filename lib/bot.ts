@@ -9,7 +9,7 @@ import { DEBUG, VERBOSE } from './env.ts';
 
 export default class Bot {
   mediator?: Mediator;
-  discord: DiscordClient;
+  discord?: DiscordClient;
   logger: Dlog;
   config: Config;
   channelUsers: Dictionary<Array<string>> = {};
@@ -25,12 +25,6 @@ export default class Bot {
     } else {
       this.logger = new Dlog(config.nickname);
     }
-    this.discord = new DiscordClient(
-      config.discordToken,
-      this.channelUsers,
-      this.logger,
-      config.sendMessageUpdates ?? false,
-    );
   }
 
   async connect() {
@@ -38,6 +32,7 @@ export default class Bot {
     if (this.ircClient) {
       this.logger.info('Connecting to Discord');
     }
+    this.discord = this.createDiscordClient(this.config);
     await this.discord.connect();
 
     // Extract id and token from Webhook urls and connect.
@@ -55,7 +50,7 @@ export default class Bot {
       },
       ...this.config.ircOptions,
     };
-    this.ircClient = new CustomIrcClient(ircOptions, this);
+    this.ircClient = this.createIrcClient(ircOptions);
     this.mediator = new Mediator(
       this.discord,
       this.ircClient,
@@ -68,10 +63,23 @@ export default class Bot {
     await this.ircClient.connect(this.config.server, this.config.port, this.config.tls);
   }
 
+  createIrcClient(ircOptions: ClientOptions) {
+    return new CustomIrcClient(ircOptions, this);
+  }
+
+  createDiscordClient(config: Config) {
+    return new DiscordClient(
+      config.discordToken,
+      this.channelUsers,
+      this.logger,
+      config.sendMessageUpdates ?? false,
+    );
+  }
+
   async disconnect() {
     this.exiting = true;
     await this.ircClient?.quit();
     this.ircClient?.disconnect();
-    await this.discord.destroy();
+    await this.discord?.destroy();
   }
 }
