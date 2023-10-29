@@ -51,9 +51,11 @@ export default class Bot {
       ...this.config.ircOptions,
     };
     this.ircClient = this.createIrcClient(ircOptions);
+    const guild = this.channelMapping.mappings[0].discordChannel.guild;
     this.mediator = new Mediator(
       this.discord,
       this.ircClient,
+      guild,
       this.config,
       this.channelMapping,
       this.channelUsers,

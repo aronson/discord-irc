@@ -6,7 +6,6 @@ import { DiscordClient } from './discordClient.ts';
 import {
   AllowedMentionType,
   AllWebhookMessageOptions,
-  APIError,
   DiscordAPIError,
   Dlog,
   escapeStringRegexp,
@@ -14,21 +13,20 @@ import {
   GuildMember,
   Message,
   Message as DiscordMessage,
-  PKAPI,
   PKMember,
-  Queue,
-  TTL,
   User,
 } from './deps.ts';
-import { delay, Dictionary, replaceAsync } from './helpers.ts';
+import { Dictionary, replaceAsync } from './helpers.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
+import { GuildChannelCache } from './cache/channelCache.ts';
+import { GuildMemberCache } from './cache/guildMemberCache.ts';
+import { MemberRoleCache } from './cache/memberRoleCache.ts';
+import { PKMemberCache } from './cache/pkMemberCache.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
 const USERNAME_MAX_LENGTH = 32;
-
-const MILLISECONDS_PER_SECOND = 1000;
 
 /**
  * Parses, transforms, and marshals messages emitted from Discord or IRC to the other.
@@ -36,6 +34,7 @@ const MILLISECONDS_PER_SECOND = 1000;
 export class Mediator {
   discord: DiscordClient;
   irc: IrcClient;
+  guild: Guild;
   channelMapping: ChannelMapper;
   debug: boolean = DEBUG;
   logger: Dlog;
@@ -50,35 +49,34 @@ export class Mediator {
   formatWebhookAvatarURL: string;
   channelUsers: Dictionary<Array<string>>;
   ircClient?: CustomIrcClient;
-  pkApi?: PKAPI;
-  pkQueue?: Queue;
-  pkCache?: TTL<PKMember[]>;
+  pkCache: PKMemberCache;
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
   commandCharacters: string[];
   allowRolePings: boolean;
   ignoreUsers?: IgnoreUsers;
+  private GuildMemberCache: GuildMemberCache;
+  private MemberRoleCache: MemberRoleCache;
+  private GuildChannelCache: GuildChannelCache;
   constructor(
     discord: DiscordClient,
     irc: IrcClient,
+    guild: Guild,
     config: Config,
     mapper: ChannelMapper,
     channelUsers: Dictionary<Array<string>>,
     logger: Dlog,
   ) {
     this.config = config;
+    this.guild = guild;
     this.channelMapping = mapper;
     this.discord = discord;
     this.irc = irc;
     this.logger = logger;
     this.channelUsers = channelUsers;
-    if (config.pluralKit) {
-      this.pkApi = new PKAPI();
-      this.pkQueue = new Queue();
-      const fiveMinutesInSeconds = 300;
-      if (config.pkCacheSeconds !== 0) {
-        this.pkCache = new TTL<PKMember[]>((config.pkCacheSeconds ?? fiveMinutesInSeconds) * MILLISECONDS_PER_SECOND);
-      }
-    }
+    this.GuildMemberCache = new GuildMemberCache(guild);
+    this.MemberRoleCache = new MemberRoleCache(this.GuildMemberCache);
+    this.GuildChannelCache = new GuildChannelCache(guild);
+    this.pkCache = new PKMemberCache(config);
     // Make usernames lowercase for IRC ignore
     if (this.config.ignoreConfig) {
       this.config.ignoreConfig.ignorePingIrcUsers = this.config.ignoreConfig.ignorePingIrcUsers
@@ -167,30 +165,8 @@ export class Mediator {
   }
 
   async testForPluralKitMessage(author: User, message: Message): Promise<boolean> {
-    if (!this.pkApi) return false;
-    try {
-      const cachedMembers = this.pkCache?.get(author.id);
-      if (cachedMembers) {
-        return this.filterMessageTags(cachedMembers, message);
-      } else {
-        const system = await this.pkApi.getSystem({ system: author.id });
-        const membersMap = await this.pkApi.getMembers({ system: system.id });
-        const members = Array.from(membersMap.values());
-        this.pkCache?.set(author.id, members);
-        return this.filterMessageTags(members, message);
-      }
-      // An exception means the user was not in PK or we are rate limited usually
-    } catch (e) {
-      if (e instanceof APIError && e.message === '429: too many requests') {
-        // Ensure API requests are dispatched in single queue despite potential burst messaging
-        return await this.pkQueue?.push(async () => {
-          // Wait one second for API to be ready
-          await delay(1000);
-          return await this.testForPluralKitMessage(author, message);
-        }) ?? false;
-      }
-      return false;
-    }
+    const members = await this.pkCache.get(author.id);
+    return this.filterMessageTags(members, message);
   }
 
   async replaceUserMentions(
@@ -200,7 +176,7 @@ export class Mediator {
   ): Promise<string> {
     if (!message.guild) return '';
     try {
-      const member = await message.guild.members.fetch(mention.id);
+      const member = await this.GuildMemberCache.get(mention.id);
       const displayName = member.nick || mention.displayName || mention.username;
 
       const userMentionRegex = RegExp(`<@(&|!)?${mention.id}>`, 'g');
@@ -225,8 +201,9 @@ export class Mediator {
       text,
       /<#(\d+)>/g,
       async (_, channelId: string) => {
-        const channel = await this.discord.channels.fetch(channelId);
-        if (channel && channel.isGuildText()) return `#${channel.name}`;
+        // TODO: Cache channels
+        const channel = await this.GuildChannelCache.get(channelId);
+        if (channel) return `#${channel.name}`;
         return '#deleted-channel';
       },
     );
@@ -237,6 +214,7 @@ export class Mediator {
     message: Message,
   ): Promise<string> {
     return await replaceAsync(text, /<@&(\d+)>/g, async (_, roleId) => {
+      // TODO: Cache roles
       const role = await message.guild?.roles.fetch(roleId);
       if (role) return `@${role.name}`;
       return '@deleted-role';
@@ -268,7 +246,7 @@ export class Mediator {
     const ignoredId = this.ignoreUsers?.discordIds?.some(
       (i) => i === discordUser.id,
     );
-    const roles = await discordUser.roles.array();
+    const roles = await this.MemberRoleCache.get(discordUser.id);
     const ignoredRole = this.ignoreUsers?.roles?.some(
       (r) => roles.some((role) => role.name === r || role.id === r),
     );
@@ -310,21 +288,21 @@ export class Mediator {
   async sendToIRC(message: Message, updated = false) {
     const { author } = message;
     // Ignore messages sent by the bot itself:
-    if (author.id === this.discord.user?.id || this.channelMapping?.webhooks.find((w) => w.id === message.author.id)) {
+    if (author.id === this.discord.user?.id || this.channelMapping.webhooks.find((w) => w.id === message.author.id)) {
       return;
     }
 
     const channel = message.channel;
     if (!channel.isGuildText()) return;
     const channelName = `#${channel.name}`;
-    const ircChannel = this.channelMapping?.discordIdToMapping.get(channel.id)?.ircChannel;
+    const ircChannel = this.channelMapping.discordIdToMapping.get(channel.id)?.ircChannel;
 
     if (!ircChannel) return;
     const fromGuild = message.guild;
     if (!fromGuild) return;
     let displayUsername = '';
     let discordUsername = '';
-    const member = await fromGuild.members.get(author.id);
+    const member = await this.GuildMemberCache.get(author.id);
     // Do not send to IRC if this user is on the ignore list.
     if (member) {
       if (await this.ignoredDiscordUser(member)) {
@@ -581,26 +559,26 @@ export class Mediator {
       return;
     }
 
-    let guild: Guild | undefined = undefined;
-    if (discordChannel.isGuildText()) {
-      guild = discordChannel.guild;
-    }
-    const roles = await guild?.roles.fetchAll();
+    // TODO: Cache roles and channels
+    const roles = await this.guild.roles.fetchAll();
     if (!roles) return;
-    const channels = await guild?.channels.array();
+    const channels = await this.guild.channels.array();
     if (!channels) return;
 
     const processMentionables = async (input: string) => {
       if (this.ignoreConfig?.ignorePingIrcUsers?.includes(author.toLocaleLowerCase())) return input;
       return await replaceAsync(
         input,
-        /([^@\s:,]+):|@([^\s]+)/g,
+        /([^@\s:,]+):|@([^\s]+)?/g,
         async (match, colonRef, atRef) => {
-          const reference = colonRef || atRef;
-          const member = await this.getDiscordUserByString(reference, guild);
+          const reference: string = colonRef || atRef;
+          // Remove discriminator from bot mentions
+          const member = await this.getDiscordUserByString(reference.split('#')[0], this.guild);
 
           // @username => mention, case insensitively
-          if (member) return `<@${member.id}>`;
+          if (member) {
+            return `<@${member.id}>`;
+          }
 
           if (!this.allowRolePings) return match;
           // @role => mention, case insensitively
@@ -616,7 +594,8 @@ export class Mediator {
     const processEmoji = async (input: string) => {
       return await replaceAsync(input, /:(\w+):/g, async (match, ident) => {
         // :emoji: => mention, case sensitively
-        const emoji = (await guild?.emojis.array())?.find((x) => x.name === ident && x.requireColons);
+        // TODO: Cache emoji
+        const emoji = (await this.guild.emojis.array())?.find((x) => x.name === ident && x.requireColons);
         if (emoji) return `${emoji.name}`;
 
         return match;
