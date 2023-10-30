@@ -14,6 +14,7 @@ export type IgnoreUsers = {
   irc?: string[];
   discord?: string[];
   discordIds?: string[];
+  roles?: string[];
 };
 
 export type GameLogConfig = {
@@ -41,7 +42,7 @@ export type Config = {
   discordToken: string;
   channelMapping: Dictionary<string>;
   ircOptions?: Partial<ClientOptions>;
-  floodProtectionDelayMilliseconds?: number;
+  sendMessageUpdates?: boolean;
   commandCharacters?: string[];
   ircNickColor?: boolean;
   ircNickColors?: string[];
@@ -62,6 +63,8 @@ export type Config = {
   allowRolePings?: boolean;
   logToFile?: boolean;
   logFolder?: string;
+  pluralKit?: boolean;
+  pkCacheSeconds?: number;
 };
 
 export const FormatSchema = z.object({
@@ -76,6 +79,7 @@ export const IgnoreUsersSchema = z.object({
   irc: z.array(z.string()).optional(),
   discord: z.array(z.string()).optional(),
   discordIds: z.array(z.string()).optional(),
+  roles: z.array(z.string()).optional(),
 });
 
 export const GameLogConfigSchema = z.object({
@@ -105,7 +109,7 @@ export const ConfigSchema = z.object({
   discordToken: z.string(),
   channelMapping: z.record(z.string()),
   ircOptions: z.custom<Partial<ClientOptions>>().optional(),
-  floodProtectionDelayMilliseconds: z.number().optional(),
+  sendMessageUpdates: z.boolean().optional(),
   commandCharacters: z.array(z.string()).optional(),
   ircNickColor: z.boolean().optional(),
   ircNickColors: z.array(z.string()).optional(),
@@ -121,6 +125,8 @@ export const ConfigSchema = z.object({
   allowRolePings: z.boolean().optional(),
   logToFile: z.boolean().optional(),
   logFolder: z.string().optional(),
+  pluralKit: z.boolean().optional(),
+  pkCacheSeconds: z.number().optional(),
 });
 
 const ConfigArraySchema = z.array(ConfigSchema);

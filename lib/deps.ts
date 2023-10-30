@@ -1,31 +1,61 @@
 // IRC exports
-export { Client as IrcClient } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/mod.ts';
-export type { ClientOptions } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/mod.ts';
-export type { PrivmsgEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/privmsg.ts';
-export type { ClientError } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/core/errors.ts';
-export type { RegisterEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/register.ts';
-export type { NoticeEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/notice.ts';
-export type { NickEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/nick.ts';
-export type { JoinEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/join.ts';
-export type { PartEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/part.ts';
-export type { QuitEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/quit.ts';
-export type { RemoteAddr } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/core/client.ts';
-export type { NicklistEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/nicklist.ts';
-export type { CtcpActionEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/action.ts';
-export type { InviteEvent } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/plugins/invite.ts';
-export type { AnyRawCommand } from 'https://raw.githubusercontent.com/aronson/deno-irc/main/core/protocol.ts';
+export { Client as IrcClient } from 'https://deno.land/x/irc@v0.15.0/mod.ts';
+export type { ClientOptions } from 'https://deno.land/x/irc@v0.15.0/mod.ts';
+export type { PrivmsgEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/privmsg.ts';
+export type { ClientError } from 'https://deno.land/x/irc@v0.15.0/core/errors.ts';
+export type { RegisterEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/register.ts';
+export type { NoticeEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/notice.ts';
+export type { NickEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/nick.ts';
+export type { JoinEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/join.ts';
+export type { PartEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/part.ts';
+export type { QuitEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/quit.ts';
+export type { RemoteAddr } from 'https://deno.land/x/irc@v0.15.0/core/client.ts';
+export type { NicklistEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/nicklist.ts';
+export type { CtcpActionEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/action.ts';
+export type { InviteEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/invite.ts';
+export type { AnyRawCommand } from 'https://deno.land/x/irc@v0.15.0/core/protocol.ts';
 // Harmony/Discord exports
 export {
   AllowedMentionType,
   Client,
+  Command,
+  CommandClient,
+  DiscordAPIError,
+  event,
   GatewayIntents,
   Guild,
+  GuildChannel,
   GuildTextChannel,
+  Interaction,
+  InteractionResponseType,
+  Member as GuildMember,
   Message,
+  Role,
+  slash,
+  SlashCommandOptionType,
   User,
   Webhook,
 } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
+export type {
+  CommandContext,
+  SlashCommandPartial,
+} from 'https://raw.githubusercontent.com/harmonyland/harmony/main/mod.ts';
+export type { AllWebhookMessageOptions } from 'https://raw.githubusercontent.com/harmonyland/harmony/main/src/structures/webhook.ts';
 // std exports
 export { resolve as resolvePath } from 'https://deno.land/std@0.203.0/path/mod.ts';
 export { parse as parseCLI } from 'https://deno.land/std@0.203.0/flags/mod.ts';
 export { parse as parseJSONC } from 'https://deno.land/std@0.203.0/jsonc/mod.ts';
+// Logging
+import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
+export { Dlog };
+// PluralKit support
+export { APIError, Member as PKMember, PKAPI } from 'https://deno.land/x/pkapi@v6.0.1/lib/mod.ts';
+// Queue
+export { Queue } from 'https://deno.land/x/queue@1.2.0/mod.ts';
+// Time to Live cache
+import TTL from 'https://deno.land/x/ttl@1.0.1/mod.ts';
+export { TTL };
+// Event handler
+export { Reflect } from 'https://deno.land/x/reflect_metadata@v0.1.12/mod.ts';
+// Regex escape
+export { escapeStringRegexp } from 'https://deno.land/x/escape_string_regexp@v0.0.1/mod.ts';
