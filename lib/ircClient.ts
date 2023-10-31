@@ -5,6 +5,7 @@ import {
   AnyRawCommand,
   ClientError,
   ClientOptions,
+  CtcpVersionEvent,
   Dlog,
   InviteEvent,
   IrcClient,
@@ -19,7 +20,6 @@ import {
 } from './deps.ts';
 import { Dictionary, forEachAsync, tuple } from './helpers.ts';
 import { Reflect } from './deps.ts';
-import { CtcpVersionEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/version.ts';
 
 // deno-lint-ignore no-explicit-any
 type Constructor<T = unknown> = new (...args: any[]) => T;
