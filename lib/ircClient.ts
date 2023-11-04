@@ -5,6 +5,7 @@ import {
   AnyRawCommand,
   ClientError,
   ClientOptions,
+  CtcpVersionEvent,
   Dlog,
   InviteEvent,
   IrcClient,
@@ -300,5 +301,10 @@ export class CustomIrcClient extends IrcClient {
     this.logger.info(
       `Attempting to reconnect to server ${addr.hostname}:${addr.port}...`,
     );
+  }
+  @Event('ctcp_version')
+  on_ctcp_version(cmd: CtcpVersionEvent) {
+    if (!cmd.source) return;
+    this.ctcp(cmd.source.name, 'VERSION', 'Discord-IRC');
   }
 }

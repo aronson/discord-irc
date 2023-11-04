@@ -107,7 +107,7 @@ export class Mediator {
     this.formatIRCText = config.format?.ircText ||
       '<{$displayUsername} [@{$discordUsername}]> {$text}';
     this.formatURLAttachment = config.format?.urlAttachment ||
-      '<{$displayUsername}> {$attachmentURL}';
+      '<{$displayUsername} [@{$discordUsername}]> {$attachmentURL}';
 
     // "{$keyName}" => "variableValue"
     // side: "Discord" or "IRC"
@@ -412,7 +412,7 @@ export class Mediator {
     }
   }
 
-  async notifyToIrc(message: DiscordMessage): Promise<void> {
+  async notifyToIrc(message: DiscordMessage, update = false): Promise<void> {
     if (message.content.trim() === '/names') return;
     if (!message.channel.isGuildText()) return;
     // return early if message was in channel we don't post to
@@ -421,7 +421,7 @@ export class Mediator {
     }
     const ircChannel = this.channelMapping.discordIdToMapping.get(message.channel.id)?.ircChannel;
     if (!ircChannel) return;
-    await this.sendToIRC(message);
+    await this.sendToIRC(message, update);
   }
 
   shouldIgnoreByPattern(text: string, ircChannel: string): boolean {

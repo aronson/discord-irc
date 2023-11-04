@@ -14,6 +14,7 @@ export type { NicklistEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/nick
 export type { CtcpActionEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/action.ts';
 export type { InviteEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/invite.ts';
 export type { AnyRawCommand } from 'https://deno.land/x/irc@v0.15.0/core/protocol.ts';
+export type { CtcpVersionEvent } from 'https://deno.land/x/irc@v0.15.0/plugins/version.ts';
 // Harmony/Discord exports
 export {
   AllowedMentionType,
