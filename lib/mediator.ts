@@ -107,7 +107,7 @@ export class Mediator {
     this.formatIRCText = config.format?.ircText ||
       '<{$displayUsername} [@{$discordUsername}]> {$text}';
     this.formatURLAttachment = config.format?.urlAttachment ||
-      '<{$displayUsername}> {$attachmentURL}';
+      '<{$displayUsername} [@{$discordUsername}]> {$attachmentURL}';
 
     // "{$keyName}" => "variableValue"
     // side: "Discord" or "IRC"
