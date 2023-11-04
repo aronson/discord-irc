@@ -37,7 +37,7 @@ export class DiscordClient extends Client {
 
   async bindNotify(notify: (m: Message, b: boolean) => Promise<void>, mapper: ChannelMapper) {
     this.on('messageCreate', async (ev) => await notify(ev, false));
-    this.on('messageUpdate', async (ev) => {
+    this.on('messageUpdate', async (_, ev) => {
       if (!this.sendMessageUpdates) return;
       await notify(ev, true);
     });
