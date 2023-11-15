@@ -583,7 +583,10 @@ export class Mediator {
         input,
         /([^@\s:,]+):|@([^\s]+)?/g,
         async (match, colonRef, atRef) => {
-          const reference: string = colonRef || atRef;
+          const reference: string | undefined = colonRef || atRef;
+          if (!reference) {
+            return match;
+          }
           // Remove discriminator from bot mentions
           const member = await this.getDiscordUserByString(reference.split('#')[0], this.guild);
 
