@@ -657,17 +657,18 @@ export class Mediator {
         USERNAME_MIN_LENGTH,
         '_',
       );
+      const allowedMentions = [AllowedMentionType.Users];
+      if (canPingEveryone) {
+        allowedMentions.push(AllowedMentionType.Everyone);
+      }
+      if (this.allowRolePings) {
+        allowedMentions.push(AllowedMentionType.Roles);
+      }
       const payload: AllWebhookMessageOptions = {
         name: username,
         avatar: avatarURL,
         allowedMentions: {
-          parse: canPingEveryone
-            ? [
-              AllowedMentionType.Roles,
-              AllowedMentionType.Users,
-              AllowedMentionType.Everyone,
-            ]
-            : [AllowedMentionType.Roles, AllowedMentionType.Users],
+          parse: allowedMentions,
           replied_user: true,
         },
       };
