@@ -49,7 +49,7 @@ export type Config = {
   parallelPingFix?: boolean;
   ircStatusNotices?: boolean;
   announceSelfJoin?: boolean;
-  webhooks?: Dictionary<string>;
+  webhooks?: unknown;
   ignoreUsers?: IgnoreUsers;
   gameLogConfig?: GameLogConfig;
   ignoreConfig?: IgnoreConfig;
@@ -116,7 +116,7 @@ export const ConfigSchema = z.object({
   parallelPingFix: z.boolean().optional(),
   ircStatusNotices: z.boolean().optional(),
   announceSelfJoin: z.boolean().optional(),
-  webhooks: z.record(z.string()).optional(),
+  webhooks: z.unknown().optional(),
   ignoreUsers: IgnoreUsersSchema.optional(),
   gameLogConfig: GameLogConfigSchema.optional(),
   ignoreConfig: IgnoreConfigSchema.optional(),

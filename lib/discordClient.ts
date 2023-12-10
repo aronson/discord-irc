@@ -25,6 +25,7 @@ export class DiscordClient extends Client {
         GatewayIntents.GUILD_MEMBERS,
         GatewayIntents.GUILD_MESSAGES,
         GatewayIntents.MESSAGE_CONTENT,
+        GatewayIntents.GUILD_WEBHOOKS,
       ],
       token: discordToken,
     });
