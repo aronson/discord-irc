@@ -248,12 +248,12 @@ Webhooks lets you override nicknames and avatars, so messages coming from IRC ca
 To enable webhooks, enable them in discord-irc's config as follows:
 
 ```json
-"webhooks": {}
+"webhooks": true
 ```
 
 The bot will automatically create and re-use its own webhooks.
 
-To disable webhooks, remove the `webhook` property from the config.
+To disable webhooks, remove the `webhooks` property from the config.
 
 ## Tests (TODO)
 
