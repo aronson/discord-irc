@@ -8,6 +8,11 @@ discord-irc
 logs
 *.log
 
+# WebStorm
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+**/.idea/discord.xml
+
 # Runtime data
 pids
 *.pid
