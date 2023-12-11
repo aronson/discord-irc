@@ -253,8 +253,6 @@ To enable webhooks, enable them in discord-irc's config as follows:
 
 The bot will automatically create and re-use its own webhooks.
 
-To disable webhooks, remove the `webhooks` property from the config.
-
 ## Tests (TODO)
 
 Run the tests with:
