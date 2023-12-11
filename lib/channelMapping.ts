@@ -40,16 +40,15 @@ export class ChannelMapper {
       }
       // Check for webhook
       let webhookURL: string | null = null;
-      if (config.webhooks) {
-        if (config.webhooks['#' + discordChannel.name]) {
-          webhookURL = config.webhooks['#' + discordChannel.name];
-        } else if (config.webhooks[discordChannel.id]) {
-          webhookURL = config.webhooks[discordChannel.id];
-        }
-      }
       let client: Webhook | null = null;
-      if (webhookURL) {
-        client = await Webhook.fromURL(webhookURL, discord);
+      if (config.webhooks) {
+        const hookName = `${bot.config.nickname}_${discordChannel.name}`;
+        const hooks = await discordChannel.fetchWebhooks();
+        const hook = hooks.find((h) => h.name === hookName);
+        client = hook ?? await Webhook.create(discordChannel, discord, {
+          name: hookName,
+        });
+        webhookURL = client.url;
       }
       const mapping: ChannelMapping = {
         discordChannel: discordChannel,

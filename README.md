@@ -220,10 +220,8 @@ First you need to create a Discord bot user, which you can do by following the i
     "discord": ["discord_nick1", "discord_nick2"], // Ignore specified Discord nicks and do not send their messages to IRC.
     "discordIds": ["198528216523210752"] // Ignore specified Discord ids and do not send their messages to IRC.
   },
-  // List of webhooks per channel
-  "webhooks": {
-    "#discord": "https://discord.com/api/webhooks/id/token"
-  },
+  // Use webhooks
+  "webhooks": true,
   // Commands that will be sent on connect
   // Note: these are typically optional and only provided as a reference
   "autoSendCommands": [
@@ -247,15 +245,13 @@ Webhooks lets you override nicknames and avatars, so messages coming from IRC ca
 
 ![discord-webhook](http://i.imgur.com/lNeJIUI.jpg)
 
-To enable webhooks, follow part 1 of
-[this guide](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) to create and retrieve a webhook
-URL for a specific channel, then enable it in discord-irc's config as follows:
+To enable webhooks, enable them in discord-irc's config as follows:
 
 ```json
-"webhooks": {
-  "#discord-channel": "https://discord.com/api/webhooks/id/token"
-}
+"webhooks": true
 ```
+
+The bot will automatically create and re-use its own webhooks.
 
 ## Tests (TODO)
 
