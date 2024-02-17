@@ -117,8 +117,9 @@ export class CustomIrcClient extends IrcClient {
   @Event('error')
   onError(error: ClientError) {
     this.logger.error(
-      `Received error event from IRC\n${JSON.stringify(error, null, 2)}`,
+      `Received error event from IRC:\n`,
     );
+    console.log(error);
   }
   bindNotify(
     fn: (author: string, channel: string, message: string, raw: boolean) => Promise<void>,
