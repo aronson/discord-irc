@@ -1,4 +1,7 @@
 {
+  "compilerOptions": {
+    "experimentalDecorators": true
+  },
   "lint": {
     "include": ["lib/", "test/", "discord-irc.ts"],
     "rules": {
