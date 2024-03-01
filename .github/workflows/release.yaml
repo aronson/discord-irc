@@ -57,13 +57,13 @@ jobs:
           script: return "${{ runner.os }}".toLowerCase();
 
       - name: Compile AMD64 for Windows
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run:
           deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
           --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64.exe discord-irc.ts
 
       - name: Compile AMD64 and ARM64 binaries for macOS and Linux
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'Windows'
         run: |
           deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
             --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64 discord-irc.ts
