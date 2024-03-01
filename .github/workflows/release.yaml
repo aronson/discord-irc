@@ -56,7 +56,7 @@ jobs:
           result-encoding: string
           script: return "${{ runner.os }}".toLowerCase();
 
-      - name: Compile AMD64 for Windows
+      - name: Compile AMD64 binary for Windows
         if: runner.os == 'Windows'
         run:
           deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
