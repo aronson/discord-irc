@@ -18,3 +18,6 @@ config.json
 
 # Build
 dist/
+
+# deno compile output
+discord-irc

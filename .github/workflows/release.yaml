@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: "*.*.*"
+    tags: '*.*.*'
 
 permissions:
   contents: write
@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Generate release notes
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const tag = context.ref.split('/').at(-1);
@@ -38,43 +38,41 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - pi
           - windows-latest
           - macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Deno
-        if: matrix.os != 'pi'
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
 
       - name: Set the OS name suffix
         id: os-suffix
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           result-encoding: string
           script: return "${{ runner.os }}".toLowerCase();
 
-      - name: Set the arch suffix
-        id: arch-suffix
-        uses: actions/github-script@v6
-        with:
-          result-encoding: string
-          script: return "${{ runner.arch }}".toLowerCase();
+      - name: Compile AMD64 binary for Windows
+        if: runner.os == 'Windows'
+        run:
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
+          --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64.exe discord-irc.ts
 
-      - name: Compile binary
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-${{ steps.os-suffix.outputs.result }}-${{ steps.arch-suffix.outputs.result }} discord-irc.ts
-
-      - name: Compile ARM64 binary for macOS
-        if: runner.os == 'macOS'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-${{ steps.os-suffix.outputs.result }}-arm64 --target aarch64-apple-darwin discord-irc.ts
+      - name: Compile AMD64 and ARM64 binaries for macOS and Linux
+        if: runner.os != 'Windows'
+        run: |
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
+            --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64 discord-irc.ts
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
+            --output discord-irc-${{ steps.os-suffix.outputs.result }}-arm64 \
+            --target ${{ steps.os-suffix.outputs.result == 'macos' && 'aarch64-apple-darwin' || 'aarch64-unknown-linux-gnu' }} discord-irc.ts
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           file: discord-irc-*
           file_glob: true
-

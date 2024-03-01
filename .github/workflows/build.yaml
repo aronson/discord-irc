@@ -2,14 +2,14 @@ name: Publish Docker Image and Native Binaries
 
 on:
   push:
-    branches: "*"
+    branches: '*'
     paths:
       - .github/workflows/build.yaml
       - discord-irc.ts
       - lib/**
       - deno.*
       - Dockerfile
-    tags: "*.*.*"
+    tags: '*.*.*'
 
 jobs:
   publish-docker:
@@ -20,23 +20,23 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Extract metadata for container image
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
@@ -49,7 +49,7 @@ jobs:
             type=sha
 
       - name: Build and publish container image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -64,42 +64,41 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - pi
           - windows-latest
           - macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Deno
-        if: matrix.os != 'pi'
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
 
-      - name: Compile AMD64 binary for Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-linux-amd64 discord-irc.ts
+      - name: Set the OS name suffix
+        id: os-suffix
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: return "${{ runner.os }}".toLowerCase();
 
       - name: Compile AMD64 binary for Windows
-        if: matrix.os == 'windows-latest'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-windows-amd64.exe discord-irc.ts
+        if: runner.os == 'Windows'
+        run:
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
+          --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64.exe discord-irc.ts
 
-      - name: Compile AMD64 binary for macOS
-        if: matrix.os == 'macos-latest'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-macos-amd64 discord-irc.ts
-
-      - name: Compile ARM64 binary for macOS
-        if: runner.os == 'macOS'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-macos-arm64 --target aarch64-apple-darwin discord-irc.ts
-
-      - name: Compile ARM64 binary for Linux
-        if: runner.os == 'Linux' && matrix.os == 'pi'
-        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-linux-arm64 discord-irc.ts
+      - name: Compile AMD64 and ARM64 binaries for macOS and Linux
+        if: runner.os != 'Windows'
+        run: |
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
+            --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64 discord-irc.ts
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
+            --output discord-irc-${{ steps.os-suffix.outputs.result }}-arm64 \
+            --target ${{ steps.os-suffix.outputs.result == 'macos' && 'aarch64-apple-darwin' || 'aarch64-unknown-linux-gnu' }} discord-irc.ts
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}-${{ runner.os == 'macOS' && 'X64-ARM64' || runner.arch }}
+          name: ${{ runner.os }}-${{ runner.os == 'Windows' && 'x64' || 'x64-ARM64' }}
           path: ./discord-irc-*
-
