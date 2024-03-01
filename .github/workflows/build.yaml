@@ -84,18 +84,13 @@ jobs:
 
       - name: Compile AMD64 binary for Windows
         if: runner.os == 'Windows'
-        run:
-          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
-          --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64.exe discord-irc.ts
+        run: deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64.exe discord-irc.ts
 
       - name: Compile AMD64 and ARM64 binaries for macOS and Linux
         if: runner.os != 'Windows'
         run: |
-          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
-            --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64 discord-irc.ts
-          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write \
-            --output discord-irc-${{ steps.os-suffix.outputs.result }}-arm64 \
-            --target ${{ steps.os-suffix.outputs.result == 'macos' && 'aarch64-apple-darwin' || 'aarch64-unknown-linux-gnu' }} discord-irc.ts
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-${{ steps.os-suffix.outputs.result }}-amd64 discord-irc.ts
+          deno compile --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write --output discord-irc-${{ steps.os-suffix.outputs.result }}-arm64 --target ${{ steps.os-suffix.outputs.result == 'macos' && 'aarch64-apple-darwin' || 'aarch64-unknown-linux-gnu' }} discord-irc.ts
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
