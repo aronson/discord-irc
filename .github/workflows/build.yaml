@@ -100,5 +100,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}-${{ (runner.os == 'macOS' || 'Linux') && 'X64-ARM64' || runner.os }}
+          name: ${{ runner.os }}-${{ runner.os == 'Windows' && 'x64' || 'x64-ARM64' }}
           path: ./discord-irc-*
