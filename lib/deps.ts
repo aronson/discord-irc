@@ -43,9 +43,9 @@ export {
 export type { AllWebhookMessageOptions } from 'https://raw.githubusercontent.com/harmonyland/harmony/1821fc19428def11f468102631b9c53f37036f0b/src/structures/webhook.ts';
 
 // std exports
-export { resolve as resolvePath } from 'https://deno.land/std@0.203.0/path/mod.ts';
-export { parse as parseCLI } from 'https://deno.land/std@0.203.0/flags/mod.ts';
-export { parse as parseJSONC } from 'https://deno.land/std@0.203.0/jsonc/mod.ts';
+export { resolve as resolvePath } from 'https://deno.land/std@0.218.2/path/mod.ts';
+export { parse as parseCLI } from 'https://deno.land/std@0.218.2/flags/mod.ts';
+export { parse as parseJSONC } from 'https://deno.land/std@0.218.2/jsonc/mod.ts';
 
 // Logging
 import Dlog from 'https://deno.land/x/dlog2@2.0/classic.ts';
