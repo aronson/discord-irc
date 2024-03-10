@@ -40,6 +40,7 @@ export class CustomIrcClient extends IrcClient {
   ircStatusNotices?: boolean;
   autoSendCommands?: string[][];
   announceSelfJoin?: boolean;
+  exitOnReadError?: boolean;
   constructor(clientOptions: ClientOptions, bot: Bot) {
     super(clientOptions);
     if (!bot.channelMapping) throw new Error('Cannot init IRC client without channel mapper');
@@ -51,6 +52,7 @@ export class CustomIrcClient extends IrcClient {
     this.channelMapping = bot.channelMapping;
     this.ircStatusNotices = bot.config.ircStatusNotices;
     this.announceSelfJoin = bot.config.announceSelfJoin;
+    this.exitOnReadError = bot.config.exitOnReadError;
     this.exiting = () => bot.exiting;
     this.bindEvents();
     this.sendExactToDiscord = async () => {};
@@ -116,9 +118,10 @@ export class CustomIrcClient extends IrcClient {
   }
   @Event('error')
   onError(error: ClientError) {
-    this.logger.error(
-      `Received error event from IRC\n${JSON.stringify(error, null, 2)}`,
-    );
+    console.log(error);
+    if (this.exitOnReadError) {
+      Deno.exit();
+    }
   }
   bindNotify(
     fn: (author: string, channel: string, message: string, raw: boolean) => Promise<void>,
