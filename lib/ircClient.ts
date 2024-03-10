@@ -120,7 +120,7 @@ export class CustomIrcClient extends IrcClient {
   onError(error: ClientError) {
     console.log(error);
     if (this.exitOnReadError) {
-      Deno.exit();
+      Deno.exit(1);
     }
   }
   bindNotify(
