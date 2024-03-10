@@ -65,6 +65,7 @@ export type Config = {
   logFolder?: string;
   pluralKit?: boolean;
   pkCacheSeconds?: number;
+  exitOnReadError?: boolean;
 };
 
 export const FormatSchema = z.object({
@@ -127,6 +128,7 @@ export const ConfigSchema = z.object({
   logFolder: z.string().optional(),
   pluralKit: z.boolean().optional(),
   pkCacheSeconds: z.number().optional(),
+  exitOnReadError: z.boolean().optional(),
 });
 
 const ConfigArraySchema = z.array(ConfigSchema);
