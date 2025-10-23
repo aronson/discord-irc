@@ -1,7 +1,8 @@
 import { ChannelMapper } from './channelMapping.ts';
-import { Dictionary, escapeMarkdown } from './helpers.ts';
+import { delay, Dictionary, escapeMarkdown } from './helpers.ts';
 import { Client, Dlog, event, GatewayIntents, Interaction, Message, slash, SlashCommandPartial } from './deps.ts';
 import { DEBUG, VERBOSE } from './env.ts';
+import { Config } from './config.ts';
 
 const namesCommand: SlashCommandPartial = {
   name: 'names',
@@ -13,11 +14,13 @@ export class DiscordClient extends Client {
   private sendMessageUpdates: boolean;
   private mapper?: ChannelMapper;
   private channelUsers: Dictionary<string[]>;
+  private config: Config;
   constructor(
     discordToken: string,
     channelUsers: Dictionary<string[]>,
     logger: Dlog,
     sendMessageUpdates: boolean,
+    config: Config,
   ) {
     super({
       intents: [
@@ -31,14 +34,41 @@ export class DiscordClient extends Client {
     this.channelUsers = channelUsers;
     this.logger = logger;
     this.sendMessageUpdates = sendMessageUpdates;
+    this.config = config;
     // Reconnect event has to be hooked manually due to naming conflict
     this.on('reconnect', (shardId) => logger.info(`Reconnected to Discord (shard ID ${shardId})`));
   }
 
   async bindNotify(notify: (m: Message, b: boolean) => Promise<void>, mapper: ChannelMapper) {
     this.on('messageCreate', async (ev) => await notify(ev, false));
-    this.on('messageUpdate', async (_, ev) => {
+    this.on('messageUpdate', async (message, ev) => {
       if (!this.sendMessageUpdates) return;
+      if (this.config.pluralKit && message.webhookID) {
+        await delay(this.config.pluralKitWaitDelay ?? 2000);
+        const response = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`);
+        // If pluralkit registered this message, don't send the edit update if it's within 2s
+        const payload = await response.json();
+        const messageDate = new Date(payload.timestamp);
+        // Get the timestamp in milliseconds
+        const targetTimeMs: number = messageDate.getTime();
+
+        // Get the current time in milliseconds
+        const currentTimeMs: number = Date.now();
+
+        // Calculate the absolute difference between the two times
+        const differenceMs: number = Math.abs(currentTimeMs - targetTimeMs);
+
+        // Define the time window in milliseconds (2 seconds)
+        const timeWindowMs: number = 2 * 1000;
+        if (differenceMs <= timeWindowMs) {
+          this.logger.debug('Ignoring a rapid PluralKit edit to prevent bot-level spam on webhook edit.');
+          return;
+        }
+      } else if (this.config.pluralKit && message.content.startsWith('pk;')) {
+        // Ignore PK commands from users
+        this.logger.debug('Ignoring a PluralKit command from a user to prevent spam.');
+        return;
+      }
       await notify(ev, true);
     });
     try {

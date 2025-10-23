@@ -16,13 +16,12 @@ import {
   PKMember,
   User,
 } from './deps.ts';
-import { Dictionary, replaceAsync } from './helpers.ts';
+import { delay, Dictionary, replaceAsync } from './helpers.ts';
 import { formatFromDiscordToIRC, formatFromIRCToDiscord } from './formatting.ts';
 import { DEFAULT_NICK_COLORS, wrap } from './colors.ts';
 import { AllGuildChannelsCache, GuildChannelCache } from './cache/channelCache.ts';
 import { AllGuildMembersCache, GuildMemberCache } from './cache/memberCache.ts';
 import { AllGuildRoleCache, GuildRoleCache, MemberRoleCache } from './cache/roleCache.ts';
-import { PKMemberCache } from './cache/pkMemberCache.ts';
 
 // Usernames need to be between 2 and 32 characters for webhooks:
 const USERNAME_MIN_LENGTH = 2;
@@ -49,7 +48,6 @@ export class Mediator {
   formatWebhookAvatarURL: string;
   channelUsers: Dictionary<Array<string>>;
   ircClient?: CustomIrcClient;
-  pkCache: PKMemberCache;
   ircNickColors: string[] = DEFAULT_NICK_COLORS;
   commandCharacters: string[];
   allowRolePings: boolean;
@@ -84,7 +82,6 @@ export class Mediator {
     this.GuildRoleCache = new GuildRoleCache(guild);
     this.AllGuildRolesCache = new AllGuildRoleCache(guild);
     this.AllGuildChannelsCache = new AllGuildChannelsCache(guild);
-    this.pkCache = new PKMemberCache(config);
     // Make usernames lowercase for IRC ignore
     if (this.config.ignoreConfig) {
       this.config.ignoreConfig.ignorePingIrcUsers = this.config.ignoreConfig.ignorePingIrcUsers
@@ -131,14 +128,16 @@ export class Mediator {
     }
     this.commandCharacters = config.commandCharacters ?? [];
 
+    if (config.pluralKit && !config.pluralKitWaitDelay) {
+      config.pluralKitWaitDelay = 1000;
+    }
+
     this.bindMethods();
     irc.bindNotify(this.notifyToDiscord, this);
     discord.bindNotify(this.notifyToIrc, mapper);
   }
 
   bindMethods() {
-    this.filterMessageTags = this.filterMessageTags.bind(this);
-    this.testForPluralKitMessage = this.testForPluralKitMessage.bind(this);
     this.replaceUserMentions = this.replaceUserMentions.bind(this);
     this.replaceNewlines = this.replaceNewlines.bind(this);
     this.replaceChannelMentions = this.replaceChannelMentions.bind(this);
@@ -157,24 +156,6 @@ export class Mediator {
     this.getDiscordAvatar = this.getDiscordAvatar.bind(this);
     this.findWebhook = this.findWebhook.bind(this);
     this.notifyToDiscord = this.notifyToDiscord.bind(this);
-  }
-  filterMessageTags(members: PKMember[], message: Message) {
-    const tags = members.flatMap((m) => m.proxy_tags ?? []);
-    for (const tag of tags) {
-      if (!(tag.prefix || tag.suffix)) continue;
-      const prefix = escapeStringRegexp(tag.prefix ?? '');
-      const suffix = escapeStringRegexp(tag.suffix ?? '');
-      const regex = new RegExp(`^${prefix}.*${suffix}$`);
-      if (regex.test(message.content)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async testForPluralKitMessage(author: User, message: Message): Promise<boolean> {
-    const members = await this.pkCache.get(author.id);
-    return this.filterMessageTags(members, message);
   }
 
   async replaceUserMentions(
@@ -332,11 +313,6 @@ export class Mediator {
       discordUsername = message.author.username;
     }
 
-    // Check for PluralKit proxying
-    if (!author.bot && await this.testForPluralKitMessage(author, message)) {
-      return;
-    }
-
     let text = await this.parseText(message);
 
     if (this.config.ircNickColor) {
@@ -418,6 +394,13 @@ export class Mediator {
     // return early if message was in channel we don't post to
     if (!(this.channelMapping.discordIdToMapping.get(message.channel.id))) {
       return;
+    }
+    // Wait 2 seconds for PK to potentially delete
+    if (this.config.pluralKit && !message.webhookID) {
+      await delay(this.config.pluralKitWaitDelay ?? 2000);
+      const response = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`);
+      // If pluralkit registered this message, don't send it and let the webhook send later in another messageCreate
+      if (response.ok) return;
     }
     const ircChannel = this.channelMapping.discordIdToMapping.get(message.channel.id)?.ircChannel;
     if (!ircChannel) return;

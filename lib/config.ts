@@ -64,6 +64,7 @@ export type Config = {
   logToFile?: boolean;
   logFolder?: string;
   pluralKit?: boolean;
+  pluralKitWaitDelay?: number;
   pkCacheSeconds?: number;
   exitOnReadError?: boolean;
 };
@@ -127,6 +128,7 @@ export const ConfigSchema = z.object({
   logToFile: z.boolean().optional(),
   logFolder: z.string().optional(),
   pluralKit: z.boolean().optional(),
+  pluralKitWaitDelay: z.number().optional(),
   pkCacheSeconds: z.number().optional(),
   exitOnReadError: z.boolean().optional(),
 });

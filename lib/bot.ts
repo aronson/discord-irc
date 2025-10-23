@@ -75,6 +75,7 @@ export default class Bot {
       this.channelUsers,
       this.logger,
       config.sendMessageUpdates ?? false,
+      config,
     );
   }
 

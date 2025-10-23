@@ -220,6 +220,11 @@ First you need to create a Discord bot user, which you can do by following the i
     "discord": ["discord_nick1", "discord_nick2"], // Ignore specified Discord nicks and do not send their messages to IRC.
     "discordIds": ["198528216523210752"] // Ignore specified Discord ids and do not send their messages to IRC.
   },
+  // Support PluralKit integration (default false)
+  "pluralKit": true,
+  // How long to wait for PluralKit API to register messages
+  // 1-2s recommended, default 2s; 300ms should work per upstream but did not in testing
+  "pluralKitWaitDelay": 1000,
   // Use webhooks
   "webhooks": true,
   // Commands that will be sent on connect
