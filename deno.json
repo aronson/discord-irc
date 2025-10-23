@@ -16,11 +16,16 @@
     "include": ["lib/", "test/", "discord-irc.ts", "README.md", "TODO.md"]
   },
   "tasks": {
-    "start": "deno run --allow-import --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write discord-irc.ts",
-    "prepare": "deno compile --allow-import --allow-net --allow-env=CONFIG_FILE,DEBUG,VERBOSE,NODE_EXTRA_CA_CERTS --allow-read --allow-write discord-irc.ts"
+    "start": "deno run --allow-env --allow-import --allow-net --allow-read --allow-write discord-irc.ts",
+    "prepare": "deno compile --allow-env --allow-import --allow-net --allow-read --allow-write discord-irc.ts"
   },
   "test": {
     "include": ["test/"]
   },
-  "lock": false
+  "lock": false,
+  "imports": {
+    "@henrygd/queue": "jsr:@henrygd/queue@^1.1.1",
+    "@irc/client": "jsr:@irc/client@^0.17.2",
+    "@std/fmt": "jsr:@std/fmt@^1.0.8"
+  }
 }
