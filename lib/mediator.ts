@@ -341,9 +341,9 @@ export class Mediator {
 
     if (this.config.ircNickColor) {
       const displayColorIdx = (displayUsername.charCodeAt(0) + displayUsername.length) %
-          this.ircNickColors.length;
+        this.ircNickColors.length;
       const discordColorIdx = (discordUsername.charCodeAt(0) + discordUsername.length) %
-          this.ircNickColors.length;
+        this.ircNickColors.length;
       displayUsername = wrap(
         this.ircNickColors[displayColorIdx],
         displayUsername,
