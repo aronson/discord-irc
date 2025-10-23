@@ -86,7 +86,7 @@ export class DiscordClient extends Client {
   }
 
   @event()
-  debug(message: string): void {
+  override debug(message: string): void {
     if (!VERBOSE && containsIgnoredMessage(message)) {
       return;
     }

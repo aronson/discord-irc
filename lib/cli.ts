@@ -86,7 +86,7 @@ async function run() {
     await helpers.forEachAsync(bots, async (bot) => {
       try {
         await bot.disconnect();
-      } catch (e) {
+      } catch (e: any) {
         bot.logger.error(e);
       }
     });

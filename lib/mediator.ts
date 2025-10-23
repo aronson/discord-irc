@@ -189,7 +189,7 @@ export class Mediator {
 
       const userMentionRegex = RegExp(`<@(&|!)?${mention.id}>`, 'g');
       return content.replace(userMentionRegex, `@${displayName}`);
-    } catch (e) {
+    } catch (e: any) {
       // Happens when a webhook is mentioned similar to a user, prevent 404 from crashing bot
       if (e instanceof DiscordAPIError) {
         this.logger.error(`Discord API error in user mention lookup, likely user was webhook:\n${e}`);
@@ -311,7 +311,7 @@ export class Mediator {
     let member: GuildMember | undefined = undefined;
     try {
       member = await this.GuildMemberCache.get(author.id);
-    } catch (e) {
+    } catch (e: any) {
       // Happens when a webhook is mentioned similar to a user, prevent 404 from crashing bot
       if (e instanceof DiscordAPIError) {
         this.debug && this.logger.debug(`Discord API error in user lookup, likely user was webhook:\n${e}`);
@@ -341,9 +341,9 @@ export class Mediator {
 
     if (this.config.ircNickColor) {
       const displayColorIdx = (displayUsername.charCodeAt(0) + displayUsername.length) %
-          this.ircNickColors.length ?? 0;
+          this.ircNickColors.length;
       const discordColorIdx = (discordUsername.charCodeAt(0) + discordUsername.length) %
-          this.ircNickColors.length ?? 0;
+          this.ircNickColors.length;
       displayUsername = wrap(
         this.ircNickColors[displayColorIdx],
         displayUsername,
