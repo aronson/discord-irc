@@ -100,9 +100,9 @@ export class Mediator {
     // displayUsername: nickname with wrapped colors
     // attachmentURL: the URL of the attachment (only applicable in formatURLAttachment)
     this.formatIRCText = config.format?.ircText ||
-      '<{$displayUsername} [@{$discordUsername}]> {$text}';
+      '<{$displayUsername} (@{$discordUsername})> {$text}';
     this.formatURLAttachment = config.format?.urlAttachment ||
-      '<{$displayUsername} [@{$discordUsername}]> {$attachmentURL}';
+      '<{$displayUsername} (@{$discordUsername})> {$attachmentURL}';
 
     // "{$keyName}" => "variableValue"
     // side: "Discord" or "IRC"
