@@ -43,12 +43,9 @@ export class DiscordClient extends Client {
     this.on('messageCreate', async (ev) => await notify(ev, false));
     this.on('messageUpdate', async (message, ev) => {
       if (!this.sendMessageUpdates) return;
-      if (this.config.pluralKit && message.webhookID) {
-        await delay(this.config.pluralKitWaitDelay ?? 2000);
-        const response = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`);
-        // If pluralkit registered this message, don't send the edit update if it's within 2s
-        const payload = await response.json();
-        const messageDate = new Date(payload.timestamp);
+      if (message.webhookID) {
+        // Don't send the edit update if it's within 1s to avoid a webhook bug
+        const messageDate = message.createdAt;
         // Get the timestamp in milliseconds
         const targetTimeMs: number = messageDate.getTime();
 
@@ -58,10 +55,10 @@ export class DiscordClient extends Client {
         // Calculate the absolute difference between the two times
         const differenceMs: number = Math.abs(currentTimeMs - targetTimeMs);
 
-        // Define the time window in milliseconds (2 seconds)
-        const timeWindowMs: number = 2 * 1000;
+        // Time window to ignore edits
+        const timeWindowMs = 1000;
         if (differenceMs <= timeWindowMs) {
-          this.logger.debug('Ignoring a rapid PluralKit edit to prevent bot-level spam on webhook edit.');
+          this.logger.debug('Ignoring a rapid webhook edit to prevent bot-level spam on webhook edit.');
           return;
         }
       } else if (this.config.pluralKit && message.content.startsWith('pk;')) {

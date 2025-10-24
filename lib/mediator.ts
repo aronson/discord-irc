@@ -272,7 +272,7 @@ export class Mediator {
     }
   }
 
-  async sendToIRC(message: Message, updated = false) {
+  async sendToIRC(message: Message, updated = false, hostName = '') {
     const { author } = message;
     // Ignore messages sent by the bot itself:
     if (author.id === this.discord.user?.id || this.channelMapping.webhooks.find((w) => w.id === message.author.id)) {
@@ -310,7 +310,7 @@ export class Mediator {
     } else {
       // Author is a webhook
       displayUsername = message.author.displayName;
-      discordUsername = message.author.username;
+      discordUsername = hostName == '' ? message.author.username : hostName;
     }
 
     let text = await this.parseText(message);
@@ -395,16 +395,27 @@ export class Mediator {
     if (!(this.channelMapping.discordIdToMapping.get(message.channel.id))) {
       return;
     }
+    // For PluralKit host username
+    let hostName = '';
     // Wait 2 seconds for PK to potentially delete
     if (this.config.pluralKit && !message.webhookID) {
       await delay(this.config.pluralKitWaitDelay ?? 2000);
       const response = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`);
       // If pluralkit registered this message, don't send it and let the webhook send later in another messageCreate
       if (response.ok) return;
+    } else if (this.config.pluralKit && message.webhookID) {
+      await delay(this.config.pluralKitWaitDelay ?? 2000);
+      const response = await fetch(`https://api.pluralkit.me/v2/messages/${message.id}`);
+      // If pluralkit registered this message, pull the proxy host for message details
+      if (response.ok) {
+        const payload = await response.json();
+        const host = await this.guild.members.fetch(payload.sender);
+        hostName = host.user.username;
+      }
     }
     const ircChannel = this.channelMapping.discordIdToMapping.get(message.channel.id)?.ircChannel;
     if (!ircChannel) return;
-    await this.sendToIRC(message, update);
+    await this.sendToIRC(message, update, hostName);
   }
 
   shouldIgnoreByPattern(text: string, ircChannel: string): boolean {
