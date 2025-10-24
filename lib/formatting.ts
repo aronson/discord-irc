@@ -1,6 +1,6 @@
 import ircFormatting from 'npm:irc-formatting@1.0.0-rc3';
-import SimpleMarkdown from 'npm:simple-markdown';
-import colors from 'npm:irc-colors';
+import SimpleMarkdown from 'npm:simple-markdown@0.7.3';
+import colors from 'npm:irc-colors@1.5.0';
 import { GameLogConfig } from './config.ts';
 
 function mdNodeToIRC(node: any) {

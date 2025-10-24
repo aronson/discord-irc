@@ -1,5 +1,5 @@
 import { ChannelMapper } from './channelMapping.ts';
-import { delay, Dictionary, escapeMarkdown } from './helpers.ts';
+import { Dictionary, escapeMarkdown } from './helpers.ts';
 import { Client, Dlog, event, GatewayIntents, Interaction, Message, slash, SlashCommandPartial } from './deps.ts';
 import { DEBUG, VERBOSE } from './env.ts';
 import { Config } from './config.ts';

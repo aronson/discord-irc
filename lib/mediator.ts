@@ -8,12 +8,10 @@ import {
   AllWebhookMessageOptions,
   DiscordAPIError,
   Dlog,
-  escapeStringRegexp,
   Guild,
   GuildMember,
   Message,
   Message as DiscordMessage,
-  PKMember,
   User,
 } from './deps.ts';
 import { delay, Dictionary, replaceAsync } from './helpers.ts';
