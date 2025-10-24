@@ -270,3 +270,9 @@ deno test
 
 discord-irc follows the deno standard styles with some tweaks. Please use `deno lint` and `deno fmt` to make sure this
 is followed correctly.
+
+## Community
+
+discord-irc is actively developed and discussed at the [Discord-IRC Development Server](https://discord.gg/uMf9ryyNRF)
+on Discord which is bridged to `#discordirc` on the [Libera IRC network](https://libera.chat). Feel free to join if you
+wish to discuss or follow development of the application!
